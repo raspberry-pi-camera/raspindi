@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.module": "php",
+        "*.theme": "php",
+        "iostream": "cpp"
+    }
+}
