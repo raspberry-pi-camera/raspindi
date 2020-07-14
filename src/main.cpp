@@ -32,7 +32,8 @@ int loadConfig()
 	}
 	catch(const libconfig::FileIOException &fioex)
 	{
-		std::cerr << "Could not open config file." << std::endl;
+		std::cerr << "Could not open config file /etc/raspindi.conf"
+			<< std::endl;
 		return(EXIT_FAILURE);
 	}
 	catch(const libconfig::ParseException &pex)
@@ -50,6 +51,9 @@ int main(int argc, char* argv[])
 	if (loaded > 0) {
 		return loaded;
 	}
+
+	std::string neopixelpath = cfg.lookup("neopixel_path");
+
 	if (!NDIlib_initialize())
 	{
 		std::cerr << "Cannot run NDI." << std::endl;
@@ -63,7 +67,7 @@ int main(int argc, char* argv[])
 
 	std::ofstream neopixel;
 
-	raspicam::RaspiCam_Cv Camera; //Camera object
+	raspicam::RaspiCam_Cv Camera;
 
 	int width, height;
 	width = 1280;
@@ -109,16 +113,17 @@ int main(int argc, char* argv[])
 		NDIlib_send_get_tally(pNDI_send, &NDI_tally, 0);
 		if (NDI_tally.on_program)
 		{
-			neopixel.open("/tmp/neopixel.state");
+			neopixel.open(neopixelpath);
 			neopixel << "L";
 			neopixel.close();
 		} else if (NDI_tally.on_preview)
 		{
-			neopixel.open("/tmp/neopixel.state");
+			neopixel.open(neopixelpath);
 			neopixel << "P";
 			neopixel.close();
-		} else {
-			neopixel.open("/tmp/neopixel.state");
+		} else
+		{
+			neopixel.open(neopixelpath);
 			neopixel << "N";
 			neopixel.close();
 		}
