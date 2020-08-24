@@ -47,6 +47,12 @@ int loadConfig()
 
 int main(int argc, char* argv[])
 {
+	for (int i=0; i < argc; i++) {
+		if (!strcmp("-v", argv[i])) {
+			std::cout << "1.0";
+			return 0;
+		}
+	}
 	int loaded = loadConfig();
 	if (loaded > 0) {
 		return loaded;
