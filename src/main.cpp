@@ -16,6 +16,8 @@
 
 #include <libconfig.h++>
 
+#define VERSION "1.0.0"
+
 static std::atomic<bool> exit_loop(false);
 libconfig::Config cfg;
 
@@ -49,7 +51,7 @@ int main(int argc, char* argv[])
 {
 	for (int i=0; i < argc; i++) {
 		if (!strcmp("-v", argv[i])) {
-			std::cout << "1.0";
+			std::cout << VERSION;
 			return 0;
 		}
 	}
