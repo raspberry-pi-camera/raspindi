@@ -1,1 +1,2 @@
 neopixel_path = "/tmp/neopixel.state";
+camera_number = "-1";
