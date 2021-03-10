@@ -9,14 +9,13 @@
 #include <fstream>
 
 #include <unistd.h>
-#include <opencv2/opencv.hpp>
-#include <raspicam/raspicam_cv.h>
+#include <raspicam/raspicam.h>
 
 #include <Processing.NDI.Lib.h>
 
 #include <libconfig.h++>
 
-#define VERSION "1.0.0"
+#define VERSION "1.1.0"
 
 static std::atomic<bool> exit_loop(false);
 libconfig::Config cfg;
@@ -75,26 +74,35 @@ int main(int argc, char* argv[])
 
 	std::ofstream neopixel;
 
-	raspicam::RaspiCam_Cv Camera;
+	raspicam::RaspiCam Camera;
 
 	int width, height;
 	width = 1280;
 	height = 720;
 
+	Camera.setWidth(width);
+	Camera.setHeight(height);
+	Camera.setFrameRate(25);
+	Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
+
+	int rawSize = Camera.getImageBufferSize();
+	int dataSize = rawSize * 1.3;
+	int pixels = width * height;
+	int zero = 0;
+
 	bool idx = false;
-	
-	Camera.set(cv::CAP_PROP_FRAME_WIDTH, width);
-	Camera.set(cv::CAP_PROP_FRAME_HEIGHT, height);
-	Camera.set(cv::CAP_PROP_FPS, 30);
-	Camera.set(cv::CAP_PROP_FORMAT, CV_8UC4);
+	unsigned char *raw[2];
+	raw[0] = new unsigned char[rawSize];
+	raw[1] = new unsigned char[rawSize];
+	unsigned char *data[2];
+	data[0] = new unsigned char[dataSize];
+	data[1] = new unsigned char[dataSize];
 
 	if (!Camera.open())
 	{
 		printf("Error opening camera.");
 		return 2;
 	}
-
-	cv::Mat images[2];
 
 	NDIlib_send_instance_t pNDI_send = NDIlib_send_create(&NDI_send_create_desc);
 	if (!pNDI_send)
@@ -111,10 +119,13 @@ int main(int argc, char* argv[])
 	while (!exit_loop)
 	{
 		Camera.grab();
-		Camera.retrieve(images[(int)idx]); //get camera image
+		Camera.retrieve(raw[(int)idx]); //get camera image
 
 		// Convert native colour (BGR) to BGRA
-		cv::cvtColor(images[(int)idx], images[(int)idx], cv::COLOR_BGR2BGRA);
+		for (int i=0; i<pixels;i++) {
+			memcpy(data[(int)idx] + i*4, raw[(int)idx] + i*3, 3);
+			data[(int)idx][i*4 + 3] = 0;
+		}
 
 		// Get Tally information
 		NDIlib_tally_t NDI_tally;
@@ -137,13 +148,13 @@ int main(int argc, char* argv[])
 		}
 
 		// Send the video frame
-		NDI_video_frame.p_data = (uint8_t*)images[(int)idx].data;
-		NDIlib_send_send_video_async_v2(pNDI_send, &NDI_video_frame);
+		NDI_video_frame.p_data = (uint8_t*)data[(int)idx];
+		NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
 
 		idx = !idx;
 	}
 
-	NDIlib_send_send_video_async_v2(pNDI_send, NULL);
+	NDIlib_send_send_video_v2(pNDI_send, NULL);
 
 	NDIlib_send_destroy(pNDI_send);
 
