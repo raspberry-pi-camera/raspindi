@@ -39,7 +39,8 @@ Install compilation dependencies.
 
 ```
 sudo apt update
-sudo apt install libconfig++-dev
+sudo apt install libconfig++-dev libavahi-client3
+
 ```
 
 Compile.
