@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
 	raspicam::RaspiCam Camera;
 
 	int width, height, fps;
-	width = stoi(cfg.lookup("width");
-	height = stoi(cfg.lookup("height");
-	fps = stoi(cfg.lookup("fps");
+	width = stoi(cfg.lookup("width"));
+	height = stoi(cfg.lookup("height"));
+	fps = stoi(cfg.lookup("fps"));
 		   
 	Camera.setWidth(width);
 	Camera.setHeight(height);
