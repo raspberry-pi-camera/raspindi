@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <atomic>
+#include <string>
 
 #include <iostream>
 #include <fstream>
@@ -77,9 +78,9 @@ int main(int argc, char* argv[])
 	raspicam::RaspiCam Camera;
 
 	int width, height, fps;
-	width = stoi(cfg.lookup("width"));
-	height = stoi(cfg.lookup("height"));
-	fps = stoi(cfg.lookup("fps"));
+	width = std::stoi(cfg.lookup("width"));
+	height = std::stoi(cfg.lookup("height"));
+	fps = std::stoi(cfg.lookup("fps"));
 		   
 	Camera.setWidth(width);
 	Camera.setHeight(height);
