@@ -71,18 +71,19 @@ int main(int argc, char* argv[])
 	
 	NDIlib_send_create_t NDI_send_create_desc;
 	NDI_send_create_desc.p_ndi_name = "Video Feed";
-
+	
 	std::ofstream neopixel;
 
 	raspicam::RaspiCam Camera;
 
-	int width, height;
-	width = 1280;
-	height = 720;
-
+	int width, height, fps;
+	width = stoi(cfg.lookup("width");
+	height = stoi(cfg.lookup("height");
+	fps = stoi(cfg.lookup("fps");
+		   
 	Camera.setWidth(width);
 	Camera.setHeight(height);
-	Camera.setFrameRate(25);
+	Camera.setFrameRate(fps);
 	Camera.setFormat(raspicam::RASPICAM_FORMAT_RGB);
 
 	int rawSize = Camera.getImageBufferSize();
