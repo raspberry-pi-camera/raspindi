@@ -57,7 +57,7 @@ Install runtime dependencies.
 
 ```
 sudo apt update
-sudo apt install libjasper-runtime libjasper-runtime
+sudo apt install libjasper-runtime libavahi-client3
 ```
 
 Run it. (It does not require root to run.)
