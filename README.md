@@ -34,11 +34,11 @@ Clone this repository and `cd` into it.
 git clone https://github.com/raspberry-pi-camera/raspindi.git && cd raspindi
 ```
 
-Install runtime and compilation dependencies.
+Install compilation dependencies.
 
 ```
 sudo apt update
-sudo apt install libconfig++-dev libavahi-client3 libjasper-runtime
+sudo apt install libconfig++-dev
 ```
 
 Compile.
@@ -51,6 +51,13 @@ Install.
 
 ```
 sudo ./install.sh
+```
+
+Install runtime dependencies.
+
+```
+sudo apt update
+sudo apt install libjasper-runtime libjasper-runtime
 ```
 
 Run it. (It does not require root to run.)
