@@ -300,7 +300,25 @@ int main(int argc, char* argv[])
     MMAL_BUFFER_HEADER_T *buffer;
     while (!exit_loop)
     {
-        // This is the main loop; nothing needs to be done in the main thread
+		// Get Tally information
+		NDIlib_tally_t NDI_tally;
+		NDIlib_send_get_tally(pNDI_send, &NDI_tally, 0);
+		if (NDI_tally.on_program)
+		{
+			neopixel.open(neopixelpath);
+			neopixel << "L";
+			neopixel.close();
+		} else if (NDI_tally.on_preview)
+		{
+			neopixel.open(neopixelpath);
+			neopixel << "P";
+			neopixel.close();
+		} else
+		{
+			neopixel.open(neopixelpath);
+			neopixel << "N";
+			neopixel.close();
+		}
     }
     mmal_port_disable(video_port);
     mmal_component_disable(camera);
