@@ -16,7 +16,7 @@
 
 #include <libconfig.h++>
 
-#define VERSION "1.1.0"
+#define VERSION "1.1.1"
 
 static std::atomic<bool> exit_loop(false);
 libconfig::Config cfg;

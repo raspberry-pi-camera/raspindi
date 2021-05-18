@@ -72,3 +72,12 @@ Raspberry Pi camera after a few seconds.
 [OBS Studio](https://obsproject.com/) with the 
 [OBS-NDI plugin](https://github.com/Palakis/obs-ndi/releases/) 
 works well.
+
+
+# Changelog
+
+## v1.1.1
+Upgraded NDI library to v4.6.2
+
+## v1.1.0
+Removed OpenCV integration
