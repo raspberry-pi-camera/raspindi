@@ -50,6 +50,27 @@ static void sigint_handler(int)
 	exit_loop = true;
 }
 
+int loadConfig()
+{
+	try
+	{
+		cfg.readFile("/etc/raspindi.conf");
+	}
+	catch(const libconfig::FileIOException &fioex)
+	{
+		std::cerr << "Could not open config file /etc/raspindi.conf"
+			<< std::endl;
+		return(EXIT_FAILURE);
+	}
+	catch(const libconfig::ParseException &pex)
+	{
+		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
+              << " - " << pex.getError() << std::endl;
+    	return(EXIT_FAILURE);
+	}
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
 	for (int i=0; i < argc; i++) {
