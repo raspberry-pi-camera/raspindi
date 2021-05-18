@@ -28,22 +28,29 @@
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
 
 void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
-MMAL_ES_FORMAT_T *format=nullptr;
-
-MMAL_POOL_T *video_pool;
 
 static std::atomic<bool> exit_loop(false);
 
+MMAL_ES_FORMAT_T *format=nullptr;
+MMAL_POOL_T *video_pool;
+MMAL_BUFFER_HEADER_T *buffer;
+MMAL_COMPONENT_T *camera = 0;
+MMAL_PORT_T  *video_port = NULL;
+MMAL_STATUS_T status;
 
+std::ofstream neopixel;
+
+int width = 1920;
+int height = 1080;
+int framerate = 25;
+
+NDIlib_tally_t NDI_tally;
 NDIlib_send_create_t NDI_send_create_desc;
 NDIlib_send_instance_t pNDI_send;
 NDIlib_video_frame_v2_t NDI_video_frame;
 
 libconfig::Config cfg;
 
-int width = 1920;
-int height = 1080;
-int framerate = 45;
 
 static void sigint_handler(int)
 {
@@ -73,6 +80,8 @@ int loadConfig()
 
 int main(int argc, char* argv[])
 {
+
+
 	for (int i=0; i < argc; i++) {
 		if (!strcmp("-v", argv[i])) {
 			std::cout << VERSION;
@@ -91,10 +100,6 @@ int main(int argc, char* argv[])
 	framerate = std::stoi(cfg.lookup("fps"));
 
     // create_camera_component
-    MMAL_COMPONENT_T *camera = 0;
-    MMAL_PORT_T  *video_port = NULL;
-
-    MMAL_STATUS_T status;
     status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
 
     if (status != MMAL_SUCCESS)
@@ -179,8 +184,7 @@ int main(int argc, char* argv[])
     }
 
 
-    unsigned int mmal_stride = mmal_encoding_width_to_stride(MMAL_ENCODING_I420, video_port->format->es->video.width);
-    NDI_video_frame.line_stride_in_bytes = mmal_stride;
+    NDI_video_frame.line_stride_in_bytes = mmal_encoding_width_to_stride(MMAL_ENCODING_I420, video_port->format->es->video.width);;
 
     video_port->buffer_size = video_port->buffer_size_recommended;
     video_port->buffer_num = video_port->buffer_num_recommended;
@@ -284,9 +288,9 @@ int main(int argc, char* argv[])
     }
 
     int num = mmal_queue_length(video_pool->queue);
-    for (int i=0; i<num; i++)
+    for (int i=0; i < num; i++)
     {
-        MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get ( video_pool->queue);
+        MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(video_pool->queue);
 
         if (!buffer)
         {
@@ -297,12 +301,9 @@ int main(int argc, char* argv[])
             std::cerr<<"Unable to send a buffer to encoder output port "<< i <<std::endl;
         }
     }
-    MMAL_BUFFER_HEADER_T *buffer;
-	std::ofstream neopixel;
     while (!exit_loop)
     {
 		// Get Tally information
-		NDIlib_tally_t NDI_tally;
 		NDIlib_send_get_tally(pNDI_send, &NDI_tally, 0);
 		if (NDI_tally.on_program)
 		{
