@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
         }
         if (mmal_port_send_buffer(video_port, buffer) != MMAL_SUCCESS)
         {
-            std::cerr<<"Unable to send a buffer to encoder output port "<< q<<std::endl;
+            std::cerr<<"Unable to send a buffer to encoder output port "<< i <<std::endl;
         }
     }
     MMAL_BUFFER_HEADER_T *buffer;
