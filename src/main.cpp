@@ -10,10 +10,10 @@
 #include <fstream>
 
 #include <unistd.h>
-#include "mmal/mmal.h"
-#include "mmal/util/mmal_util.h"
-#include "mmal/util/mmal_util_params.h"
-#include "mmal/util/mmal_default_components.h"
+#include <interface/mmal/mmal.h>
+#include <interface/mmal/util/mmal_util.h>
+#include <interface/mmal/util/mmal_util_params.h>
+#include <interface/mmal/util/mmal_default_components.h>
 
 #include <Processing.NDI.Embedded.h>
 
