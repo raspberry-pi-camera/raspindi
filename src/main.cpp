@@ -39,7 +39,7 @@ NDIlib_send_create_t NDI_send_create_desc;
 NDIlib_send_instance_t pNDI_send;
 NDIlib_video_frame_v2_t NDI_video_frame;
 
-unsigned char *raw;
+libconfig::Config cfg;
 
 int width = 1920;
 int height = 1080;
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     {
         std::cerr << "camera video format couldn't be set" << std::endl;
         mmal_component_destroy(camera);
-        exit(1)
+        exit(1);
     }
 
     status = mmal_port_enable(video_port, video_buffer_callback);
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
     {
         std::cerr << "camera video callback2 error" << std::endl;
         mmal_component_destroy(camera);
-        exit(1)
+        exit(1);
     }
 
 
