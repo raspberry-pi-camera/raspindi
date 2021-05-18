@@ -298,6 +298,7 @@ int main(int argc, char* argv[])
         }
     }
     MMAL_BUFFER_HEADER_T *buffer;
+	std::ofstream neopixel;
     while (!exit_loop)
     {
 		// Get Tally information
