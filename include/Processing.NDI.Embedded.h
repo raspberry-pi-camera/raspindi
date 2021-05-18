@@ -2,7 +2,7 @@
 
 //*************************************************************************************************************************************
 // 
-// Copyright(c) 2014-2020, NewTek, inc.
+// Copyright(c) 2014-2021, NewTek, inc.
 // 
 // This file is part of the Embedded SDK and may not be distributed.
 
@@ -160,7 +160,7 @@ typedef struct NDIlib_compressed_packet_t
 
 #if NDILIB_CPP_DEFAULT_CONSTRUCTORS
 	NDIlib_compressed_packet_t(void) : version(sizeof(NDIlib_compressed_packet_t)), fourCC(NDIlib_compressed_FourCC_type_H264), pts(0),
-	                                   dts(0), flags(flags_none), data_size(0), extra_data_size(0) { }
+	                                   dts(0), reserved(0), flags(flags_none), data_size(0), extra_data_size(0) { }
 #endif
 } NDIlib_compressed_packet_t;
 #pragma pack(pop)
@@ -216,7 +216,8 @@ bool NDIlib_send_wait_for_keyframe_request(NDIlib_send_instance_t p_instance, ui
 // to be that of a full video frame. If one were to copy each data segment into a contiguous block, it should
 // be essentially a full and valid frame. This function should be used to send only compressed data. When
 // sending a H.264 frame via this method, the NDIlib_compressed_packet_t structure is expected to be entirely
-// within the memory of the first block.  If it is not, the frame will be dropped.
+// within the memory of the first block. If it is not, the frame will be dropped. The scatter-gather list
+// will be ignored for uncompressed frames.
 PROCESSINGNDILIB_EMBEDDED_API
 void NDIlib_send_send_video_scatter(NDIlib_send_instance_t p_instance, const NDIlib_video_frame_v2_t* p_video_data, const NDIlib_frame_scatter_t* p_video_scatter);
 
@@ -228,7 +229,8 @@ void NDIlib_send_send_video_scatter(NDIlib_send_instance_t p_instance, const NDI
 // to be that of a full video frame. If one were to copy each data segment into a contiguous block, it should
 // be essentially a full and valid frame. This function should be used to send only compressed data. When
 // sending a H.264 frame via this method, the NDIlib_compressed_packet_t structure is expected to be entirely
-// within the memory of the first block.  If it is not, the frame will be dropped.
+// within the memory of the first block. If it is not, the frame will be dropped. The scatter-gather list
+// will be ignored for uncompressed frames.
 PROCESSINGNDILIB_EMBEDDED_API
 void NDIlib_send_send_video_scatter_async(NDIlib_send_instance_t p_instance, const NDIlib_video_frame_v2_t* p_video_data, const NDIlib_frame_scatter_t* p_video_scatter);
 
@@ -239,9 +241,27 @@ void NDIlib_send_send_video_scatter_async(NDIlib_send_instance_t p_instance, con
 // to be that of a full audio frame. If one were to copy each data segment into a contiguous block, it should
 // be essentially a full and valid frame. This function should be used to send only compressed data. When
 // sending an AAC frame via this method, the NDIlib_compressed_packet_t structure is expected to be entirely
-// within the memory of the first block.  If it is not, the frame will be dropped.
+// within the memory of the first block. If it is not, the frame will be dropped. The scatter-gather list
+// will be ignored for uncompressed frames.
 PROCESSINGNDILIB_EMBEDDED_API
 void NDIlib_send_send_audio_scatter(NDIlib_send_instance_t p_instance, const NDIlib_audio_frame_v3_t* p_audio_data, const NDIlib_frame_scatter_t* p_audio_scatter);
+
+// This is an extended function of the Embedded SDK that allows someone external to additionally control the
+// tally state of an input. For instance it will allow you to specify that you already know that you are on
+// air and it will be reflected down-stream to other listeners
+PROCESSINGNDILIB_EMBEDDED_API
+bool NDIlib_send_set_tally(NDIlib_send_instance_t p_instance, const NDIlib_tally_t* p_tally);
+
+// Add a connection metadata string to the list of what is sent on each new connection. If someone is already
+// connected then this string will be sent to them immediately.
+PROCESSINGNDILIB_EMBEDDED_API
+void NDIlib_routing_add_connection_metadata(NDIlib_routing_instance_t p_instance, const NDIlib_metadata_frame_t* p_metadata);
+
+// Connection based metadata is data that is sent automatically each time a new connection is received. You
+// queue all of these up and they are sent on each connection. To reset them you need to clear them all and
+// set them up again. 
+PROCESSINGNDILIB_EMBEDDED_API
+void NDIlib_routing_clear_connection_metadata(NDIlib_routing_instance_t p_instance);
 
 // Create a new finder instance. This will return NULL if it fails. If you specify p_create_settings to be
 // NULL, then the finder will be created with default settings.

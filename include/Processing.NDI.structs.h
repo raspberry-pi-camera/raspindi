@@ -7,7 +7,7 @@
 //
 //*************************************************************************************************************************************
 // 
-// Copyright(c) 2014-2020, NewTek, inc.
+// Copyright(c) 2014-2021, NewTek, inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation 
 // files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, 
@@ -138,7 +138,7 @@ typedef enum NDIlib_frame_format_type_e
 	NDIlib_frame_format_type_progressive = 1,
 
 	// A fielded frame with the field 0 being on the even lines and field 1 being
-	// on the odd lines/
+	// on the odd lines.
 	NDIlib_frame_format_type_interleaved = 0,
 
 	// Individual fields

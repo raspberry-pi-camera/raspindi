@@ -7,7 +7,7 @@
 //
 //*************************************************************************************************************************************
 // 
-// Copyright(c) 2014-2020, NewTek, inc.
+// Copyright(c) 2014-2021, NewTek, inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation 
 // files(the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, 
@@ -318,7 +318,7 @@ typedef struct NDIlib_v4
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_is_supported)(NDIlib_recv_instance_t p_instance);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_is_supported)(NDIlib_recv_instance_t p_instance);
 	};
@@ -409,43 +409,43 @@ typedef struct NDIlib_v4
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_start)(NDIlib_recv_instance_t p_instance, const char* p_filename_hint);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_start)(NDIlib_recv_instance_t p_instance, const char* p_filename_hint);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_stop)(NDIlib_recv_instance_t p_instance);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_stop)(NDIlib_recv_instance_t p_instance);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_set_audio_level)(NDIlib_recv_instance_t p_instance, const float level_dB);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_set_audio_level)(NDIlib_recv_instance_t p_instance, const float level_dB);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_is_recording)(NDIlib_recv_instance_t p_instance);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_is_recording)(NDIlib_recv_instance_t p_instance);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED const char*(*recv_recording_get_filename)(NDIlib_recv_instance_t p_instance);
 		PROCESSINGNDILIB_DEPRECATED const char*(*NDIlib_recv_recording_get_filename)(NDIlib_recv_instance_t p_instance);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED const char*(*recv_recording_get_error)(NDIlib_recv_instance_t p_instance);
 		PROCESSINGNDILIB_DEPRECATED const char*(*NDIlib_recv_recording_get_error)(NDIlib_recv_instance_t p_instance);
 	};
 
 	union
-	{	// This functionality is now procided via external NDI recording, see SDK documentation.
+	{	// This functionality is now provided via external NDI recording, see SDK documentation.
 		PROCESSINGNDILIB_DEPRECATED bool(*recv_recording_get_times)(NDIlib_recv_instance_t p_instance, NDIlib_recv_recording_time_t* p_times);
 		PROCESSINGNDILIB_DEPRECATED bool(*NDIlib_recv_recording_get_times)(NDIlib_recv_instance_t p_instance, NDIlib_recv_recording_time_t* p_times);
 	};
@@ -559,6 +559,11 @@ typedef struct NDIlib_v4
 	union
 	{	void(*framesync_free_audio_v2)(NDIlib_framesync_instance_t p_instance, NDIlib_audio_frame_v3_t* p_audio_data);
 		PROCESSINGNDILIB_DEPRECATED void(*NDIlib_framesync_free_audio_v2)(NDIlib_framesync_instance_t p_instance, NDIlib_audio_frame_v3_t* p_audio_data);
+	};
+
+	union
+	{	int(*framesync_audio_queue_depth)(NDIlib_framesync_instance_t p_instance);
+		PROCESSINGNDILIB_DEPRECATED int(*NDIlib_framesync_audio_queue_depth)(NDIlib_framesync_instance_t p_instance);
 	};
 
 } NDIlib_v4;
