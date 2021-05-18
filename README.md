@@ -76,6 +76,11 @@ works well.
 
 # Changelog
 
+## v2.0.0
+Completely new method of acquiring the images - now calling `mmal` directly.  
+This, as well as using YUV colour, drastically improves the speed of the system,
+and the smoothness of the outputted video.
+
 ## v1.1.1
 Upgraded NDI library to v4.6.2
 
