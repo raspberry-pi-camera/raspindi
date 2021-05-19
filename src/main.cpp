@@ -78,6 +78,197 @@ int loadConfig()
 	return 0;
 }
 
+
+int getMmalConfigValue(std::string parameter)
+{
+    switch(parameter)
+    {
+        case "awb":
+            // Options: auto, sunlight, cloudy, shade, tungsten, flourescent, incadescent, flash, horizon, max, off
+            try
+            {
+                std::string value = cfg.lookup("awb")
+                switch(value)
+                {
+                    case "sunlight":
+                        return MMAL_PARAM_AWBMODE_SUNLIGHT;
+                    case "cloudy":
+                        return MMAL_PARAM_AWBMODE_CLOUDY;
+                    case "shade":
+                        return MMAL_PARAM_AWBMODE_SHADE;
+                    case "tungsten":
+                        return MMAL_PARAM_AWBMODE_TUNGSTEN;
+                    case "flourescent":
+                        return MMAL_PARAM_AWBMODE_FLOURESCENT;
+                    case "incandescent":
+                        return MMAL_PARAM_AWBMODE_INCANDESCENT;
+                    case "flash":
+                        return MMAL_PARAM_AWBMODE_FLASH;
+                    case "horizon":
+                        return MMAL_PARAM_AWBMODE_HORIZON;
+                    case "max":
+                        return MMAL_PARAM_AWBMODE_MAX;
+                    case "off":
+                        return MMAL_PARAM_AWBMODE_OFF;
+                    case "auto":
+                    default:
+                        return MMAL_PARAM_AWBMODE_AUTO;
+                }
+            } catch (SettingNotFoundException)
+            {
+                return MMAL_PARAM_AWBMODE_AUTO;
+            }
+        case "saturation":
+        case "sharpness":
+        case "contrast":
+            // Values between 0 - 100; default 0
+            try
+            {
+                int value = cfg.lookup(parameter)
+                if (value > 100)
+                {
+                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                    return 100;
+                }
+                if (value < 0)
+                {
+                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                    return 0;
+                }
+                return value;
+            } catch (SettingNotFoundException)
+            {
+                return 0;
+            }
+        case "brightness":
+            // Values between 0 - 100; default 50
+            try
+            {
+                int value = cfg.lookup(parameter)
+                if (value > 100)
+                {
+                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                    return 100;
+                }
+                if (value < 0)
+                {
+                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                    return 0;
+                }
+                return value;
+            } catch (SettingNotFoundException)
+            {
+                return 50;
+            }
+        case "exposuremode":
+            // Options: auto, night, nightpreview, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks, max, off
+            try
+            {
+                std::string value = cfg.lookup("exposuremode")
+                switch(value)
+                {
+                    case "night":
+                        return MMAL_PARAM_EXPOSUREMODE_NIGHT;
+                    case "nightpreview":
+                        return MMAL_PARAM_EXPOSUREMODE_NIGHTPREVIEW;
+                    case "backlight":
+                        return MMAL_PARAM_EXPOSUREMODE_BACKLIGHT;
+                    case "spotlight":
+                        return MMAL_PARAM_EXPOSUREMODE_SPOTLIGHT;
+                    case "sports":
+                        return MMAL_PARAM_EXPOSUREMODE_SPORTS;
+                    case "snow":
+                        return MMAL_PARAM_EXPOSUREMODE_SNOW;
+                    case "beach":
+                        return MMAL_PARAM_EXPOSUREMODE_BEACH;
+                    case "verylong":
+                        return MMAL_PARAM_EXPOSUREMODE_VERYLONG;
+                    case "fixedfps":
+                        return MMAL_PARAM_EXPOSUREMODE_FIXEDFPS;
+                    case "antishake":
+                        return MMAL_PARAM_EXPOSUREMODE_ANTISHAKE;
+                    case "fireworks":
+                        return MMAL_PARAM_EXPOSUREMODE_FIREWORKS;
+                    case "max":
+                        return MMAL_PARAM_EXPOSUREMODE_MAX;
+                    case "off":
+                        return MMAL_PARAM_EXPOSUREMODE_OFF;
+                    case "auto":
+                    default:
+                        return MMAL_PARAM_EXPOSUREMODE_AUTO;
+                }
+            } catch (SettingNotFoundException)
+            {
+                return MMAL_PARAM_EXPOSUREMODE_AUTO;
+            }
+        case "meteringmode":
+            // Options: average, spot, backlit, matrix, max
+            try
+            {
+                std::string value = cfg.lookup("meteringmode")
+                switch(value)
+                {
+                    case "spot":
+                        return MMAL_PARAM_EXPOSUREMETERINGMODE_NIGHT;
+                    case "backlit":
+                        return MMAL_PARAM_EXPOSUREMETERINGMODE_NIGHTPREVIEW;
+                    case "matrix":
+                        return MMAL_PARAM_EXPOSUREMETERINGMODE_BACKLIGHT;
+                    case "max":
+                        return MMAL_PARAM_EXPOSUREMETERINGMODE_SPOTLIGHT;
+                    case "average":
+                    default:
+                        return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+                }
+            } catch (SettingNotFoundException)
+            {
+                return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+            }
+        case "rotation":
+            // Options: none, left, right, 180
+            try
+            {
+                std::string value = cfg.lookup("rotation")
+                switch(value)
+                {
+                    case "left":
+                        return 270;
+                    case "right":
+                        return 90;
+                    case "180":
+                        return 180;
+                    case "none":
+                    default:
+                        return 0;
+                }
+            } catch (SettingNotFoundException)
+            {
+                return 0;
+            }
+        case "mirror":
+            // Options: none, horizontal, vertical, both
+            try
+            {
+                std::string value = cfg.lookup("mirror")
+                switch(value)
+                {
+                    case "horizontal":
+                        return MMAL_PARAM_MIRROR_HORIZONTAL;
+                    case "vertical":
+                        return MMAL_PARAM_MIRROR_VERTICAL;
+                    case "both":
+                        return MMAL_PARAM_MIRROR_BOTH;
+                    case "none":
+                    default:
+                        return MMAL_PARAM_MIRROR_NONE;
+                }
+            } catch (SettingNotFoundException)
+            {
+                return MMAL_PARAM_MIRROR_NONE;
+            }
+    }
+}
+
 int main(int argc, char* argv[])
 {
 	for (int i=0; i < argc; i++) {
@@ -204,75 +395,52 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    // if ( mmal_port_parameter_set_rational ( camera->control, MMAL_PARAMETER_SATURATION, ( MMAL_RATIONAL_T ) {
-    //     0, 100
-    // } ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set saturation parameter.\n";
-    // if ( mmal_port_parameter_set_rational ( camera->control, MMAL_PARAMETER_SHARPNESS, ( MMAL_RATIONAL_T ) {
-    //     0, 100
-    // } ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set sharpness parameter.\n";
+    MMAL_PARAMETER_AWBMODE_T awbParam = {{MMAL_PARAMETER_AWB_MODE,sizeof(MMAL_PARAMETER_AWBMODE_T)}, getMmalConfigValue("awb")};
+    if(mmal_port_parameter_set(camera->control, &awbParam.hdr) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set awb parameter." << std::endl;
+    }
+    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SATURATION, (MMAL_RATIONAL_T){getMmalConfigValue("saturation"), 100}) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set saturation parameter." << std::endl;
+    } 
+    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SHARPNESS, (MMAL_RATIONAL_T) {getMmalConfigValue("sharpness"), 100}) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set sharpness parameter." << std::endl;
+    }
+    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_CONTRAST, (MMAL_RATIONAL_T) {getMmalConfigValue("contrast"), 100}) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set contrast parameter." << std::endl;
+    }
+    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_BRIGHTNESS, (MMAL_RATIONAL_T) {getMmalConfigValue("brightness"), 100}) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set brightness parameter." << std::endl;
+    }
+    MMAL_PARAMETER_EXPOSUREMODE_T exp_mode = {{MMAL_PARAMETER_EXPOSURE_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getMmalConfigValue("exposuremode")};
+    if(mmal_port_parameter_set(camera->control, &exp_mode.hdr) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set exposure parameter." << std::endl;
+    }
 
-    // if ( mmal_port_parameter_set_rational ( camera->control, MMAL_PARAMETER_CONTRAST, ( MMAL_RATIONAL_T ) {
-    //     0, 100
-    // } ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set contrast parameter.\n";
+    MMAL_PARAMETER_EXPOSUREMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getMmalConfigValue("meteringmode")};
+    if(mmal_port_parameter_set(camera->control, &meter_mode.hdr) != MMAL_SUCCESS)
+    {
+        std::cout "Failed to set metering parameter." << std::endl;
+    }
 
-    // mmal_port_parameter_set_rational ( camera->control, MMAL_PARAMETER_BRIGHTNESS, ( MMAL_RATIONAL_T ) {
-    //     50, 100
-    // } );
+    int rotation = getMmalConfigValue("rotation");
+    mmal_port_parameter_set_int32(camera->output[0], MMAL_PARAMETER_ROTATION, rotation);
+    mmal_port_parameter_set_int32(camera->output[1], MMAL_PARAMETER_ROTATION, rotation);
+    mmal_port_parameter_set_int32(camera->output[2], MMAL_PARAMETER_ROTATION, rotation);
 
-    // if ( mmal_port_parameter_set_uint32 ( camera->control, MMAL_PARAMETER_ISO, 400 ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set ISO parameter.\n";
+    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, getMmalConfigValue("mirror")};
 
-    // if ( mmal_port_parameter_set_uint32 ( camera->control, MMAL_PARAMETER_SHUTTER_SPEED, 0 ) !=  MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set shutter parameter.\n";
-    
-
-    // MMAL_PARAMETER_EXPOSUREMODE_T exp_mode = {{MMAL_PARAMETER_EXPOSURE_MODE,sizeof ( exp_mode ) }, MMAL_PARAM_EXPOSUREMODE_AUTO };
-    // if ( mmal_port_parameter_set ( camera->control, &exp_mode.hdr ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set exposure parameter.\n";
-
-    // if ( mmal_port_parameter_set_int32 ( camera->control, MMAL_PARAMETER_EXPOSURE_COMP , 0 ) !=MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set Exposure Compensation parameter.\n";
-
-
-    // MMAL_PARAMETER_EXPOSUREMETERINGMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof ( meter_mode ) }, MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE };
-    // if ( mmal_port_parameter_set ( camera->control, &meter_mode.hdr ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set metering parameter.\n";
-
-    // MMAL_PARAMETER_IMAGEFX_T imgFX = {{MMAL_PARAMETER_IMAGE_EFFECT,sizeof ( imgFX ) }, MMAL_PARAM_IMAGEFX_NONE };
-    // if ( mmal_port_parameter_set ( camera->control, &imgFX.hdr ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set image effect parameter.\n";
-    
-
-    // mmal_port_parameter_set_int32 ( camera->output[0], MMAL_PARAMETER_ROTATION, 0 );
-    // mmal_port_parameter_set_int32 ( camera->output[1], MMAL_PARAMETER_ROTATION, 0 );
-    // mmal_port_parameter_set_int32 ( camera->output[2], MMAL_PARAMETER_ROTATION, 0 );
-
-
-    // MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof ( MMAL_PARAMETER_MIRROR_T ) }, MMAL_PARAM_MIRROR_NONE};
-    // if ( mmal_port_parameter_set ( camera->output[0], &mirror.hdr ) != MMAL_SUCCESS ||
-    //         mmal_port_parameter_set ( camera->output[1], &mirror.hdr ) != MMAL_SUCCESS ||
-    //         mmal_port_parameter_set ( camera->output[2], &mirror.hdr ) )
-    //     std::cout << __func__ << ": Failed to set horizontal/vertical flip parameter.\n";
-    
-
-    // if ( mmal_port_parameter_set_boolean ( camera->control, MMAL_PARAMETER_VIDEO_STABILISATION, false ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set video stabilization parameter.\n";
-
-
-    // MMAL_PARAMETER_AWBMODE_T awbParam = {{MMAL_PARAMETER_AWB_MODE,sizeof ( awbParam ) }, MMAL_PARAM_AWBMODE_AUTO };
-    // if ( mmal_port_parameter_set ( camera->control, &awbParam.hdr ) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set AWB parameter.\n";
-
-    // MMAL_PARAMETER_AWB_GAINS_T param = {{MMAL_PARAMETER_CUSTOM_AWB_GAINS,sizeof(param)}, {0,0}, {0,0}};
-    // param.r_gain.num = (unsigned int)(65536);
-    // param.b_gain.num = (unsigned int)(65536);
-    // param.r_gain.den = param.b_gain.den = 65536;
-    // if ( mmal_port_parameter_set(camera->control, &param.hdr) != MMAL_SUCCESS )
-    //     std::cout << __func__ << ": Failed to set AWBG gains parameter.\n";
-    
+    if (    mmal_port_parameter_set(camera->output[0], &mirror.hdr) != MMAL_SUCCESS ||
+            mmal_port_parameter_set(camera->output[1], &mirror.hdr) != MMAL_SUCCESS ||
+            mmal_port_parameter_set(camera->output[2], &mirror.hdr))
+    {
+        std::cout "Failed to set flip parameter." << std::endl;
+    }
 
     // Start Capture
     if (mmal_port_parameter_set_boolean(video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
