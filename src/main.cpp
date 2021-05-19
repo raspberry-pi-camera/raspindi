@@ -103,9 +103,9 @@ int getMmalConfigValue(std::string parameter)
             {
                 return MMAL_PARAM_AWBMODE_TUNGSTEN;
             }
-            if (value == "flourescent")
+            if (value == "fluorescent")
             {
-                return MMAL_PARAM_AWBMODE_FLOURESCENT;
+                return MMAL_PARAM_AWBMODE_FLUORESCENT;
             }
             if (value == "incandescent")
             {
@@ -444,37 +444,37 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    MMAL_PARAMETER_AWBMODE_T awbParam = {{MMAL_PARAMETER_AWB_MODE,sizeof(MMAL_PARAMETER_AWBMODE_T)}, getMmalConfigValue("awb")};
+    MMAL_PARAMETER_AWBMODE_T awbParam = {{MMAL_PARAMETER_AWB_MODE,sizeof(MMAL_PARAMETER_AWBMODE_T)}, (MMAL_PARAMETER_AWBMODE_T)getMmalConfigValue("awb")};
     if(mmal_port_parameter_set(camera->control, &awbParam.hdr) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set awb parameter." << std::endl;
+        std::cout << "Failed to set awb parameter." << std::endl;
     }
     if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SATURATION, (MMAL_RATIONAL_T){getMmalConfigValue("saturation"), 100}) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set saturation parameter." << std::endl;
+        std::cout << "Failed to set saturation parameter." << std::endl;
     } 
     if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SHARPNESS, (MMAL_RATIONAL_T) {getMmalConfigValue("sharpness"), 100}) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set sharpness parameter." << std::endl;
+        std::cout << "Failed to set sharpness parameter." << std::endl;
     }
     if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_CONTRAST, (MMAL_RATIONAL_T) {getMmalConfigValue("contrast"), 100}) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set contrast parameter." << std::endl;
+        std::cout << "Failed to set contrast parameter." << std::endl;
     }
     if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_BRIGHTNESS, (MMAL_RATIONAL_T) {getMmalConfigValue("brightness"), 100}) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set brightness parameter." << std::endl;
+        std::cout << "Failed to set brightness parameter." << std::endl;
     }
-    MMAL_PARAMETER_EXPOSUREMODE_T exp_mode = {{MMAL_PARAMETER_EXPOSURE_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getMmalConfigValue("exposuremode")};
+    MMAL_PARAMETER_EXPOSUREMODE_T exp_mode = {{MMAL_PARAMETER_EXPOSURE_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, (MMAL_PARAMETER_EXPOSUREMODE_T)getMmalConfigValue("exposuremode")};
     if(mmal_port_parameter_set(camera->control, &exp_mode.hdr) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set exposure parameter." << std::endl;
+        std::cout << "Failed to set exposure parameter." << std::endl;
     }
 
-    MMAL_PARAMETER_EXPOSUREMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getMmalConfigValue("meteringmode")};
+    MMAL_PARAMETER_EXPOSUREMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, (MMAL_PARAMETER_EXPOSUREMODE_T)getMmalConfigValue("meteringmode")};
     if(mmal_port_parameter_set(camera->control, &meter_mode.hdr) != MMAL_SUCCESS)
     {
-        std::cout "Failed to set metering parameter." << std::endl;
+        std::cout << "Failed to set metering parameter." << std::endl;
     }
 
     int rotation = getMmalConfigValue("rotation");
@@ -482,13 +482,13 @@ int main(int argc, char* argv[])
     mmal_port_parameter_set_int32(camera->output[1], MMAL_PARAMETER_ROTATION, rotation);
     mmal_port_parameter_set_int32(camera->output[2], MMAL_PARAMETER_ROTATION, rotation);
 
-    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, getMmalConfigValue("mirror")};
+    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, (MMAL_PARAMETER_MIRROR_T)getMmalConfigValue("mirror")};
 
     if (    mmal_port_parameter_set(camera->output[0], &mirror.hdr) != MMAL_SUCCESS ||
             mmal_port_parameter_set(camera->output[1], &mirror.hdr) != MMAL_SUCCESS ||
             mmal_port_parameter_set(camera->output[2], &mirror.hdr))
     {
-        std::cout "Failed to set flip parameter." << std::endl;
+        std::cout << "Failed to set flip parameter." << std::endl;
     }
 
     // Start Capture

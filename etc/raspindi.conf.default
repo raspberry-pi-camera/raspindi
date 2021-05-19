@@ -4,7 +4,7 @@ height="720";
 width="1280";
 fps="25";
 
-# awb: "auto"; // Options: auto, sunlight, cloudy, shade, tungsten, flourescent, incadescent, flash, horizon, max, off
+# awb: "auto"; // Options: auto, sunlight, cloudy, shade, tungsten, fluorescent, incadescent, flash, horizon, max, off
 # saturation: 0; // Value in range 0 - 100
 # sharpness: 0; // Value in range 0 - 100
 # contrast: 0; // Value in range 0 - 100
