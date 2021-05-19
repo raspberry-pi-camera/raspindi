@@ -470,12 +470,12 @@ int main(int argc, char* argv[])
         std::cout << "Failed to set metering parameter." << std::endl;
     }
 
-    int rotation = getMmalConfigValue("rotation");
+    int rotation = getRotation();
     mmal_port_parameter_set_int32(camera->output[0], MMAL_PARAMETER_ROTATION, rotation);
     mmal_port_parameter_set_int32(camera->output[1], MMAL_PARAMETER_ROTATION, rotation);
     mmal_port_parameter_set_int32(camera->output[2], MMAL_PARAMETER_ROTATION, rotation);
 
-    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, (MMAL_PARAMETER_MIRROR_T)getMirror()};
+    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, getMirror()};
 
     if (    mmal_port_parameter_set(camera->output[0], &mirror.hdr) != MMAL_SUCCESS ||
             mmal_port_parameter_set(camera->output[1], &mirror.hdr) != MMAL_SUCCESS ||
