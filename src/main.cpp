@@ -81,191 +81,240 @@ int loadConfig()
 
 int getMmalConfigValue(std::string parameter)
 {
-    switch(parameter)
+    if (parameter == "awb")
     {
-        case "awb":
-            // Options: auto, sunlight, cloudy, shade, tungsten, flourescent, incadescent, flash, horizon, max, off
-            try
+        // Options: auto, sunlight, cloudy, shade, tungsten, flourescent, incadescent, flash, horizon, max, off
+        try
+        {
+            std::string value = cfg.lookup("awb");
+            if (value == "sunlight")
             {
-                std::string value = cfg.lookup("awb")
-                switch(value)
-                {
-                    case "sunlight":
-                        return MMAL_PARAM_AWBMODE_SUNLIGHT;
-                    case "cloudy":
-                        return MMAL_PARAM_AWBMODE_CLOUDY;
-                    case "shade":
-                        return MMAL_PARAM_AWBMODE_SHADE;
-                    case "tungsten":
-                        return MMAL_PARAM_AWBMODE_TUNGSTEN;
-                    case "flourescent":
-                        return MMAL_PARAM_AWBMODE_FLOURESCENT;
-                    case "incandescent":
-                        return MMAL_PARAM_AWBMODE_INCANDESCENT;
-                    case "flash":
-                        return MMAL_PARAM_AWBMODE_FLASH;
-                    case "horizon":
-                        return MMAL_PARAM_AWBMODE_HORIZON;
-                    case "max":
-                        return MMAL_PARAM_AWBMODE_MAX;
-                    case "off":
-                        return MMAL_PARAM_AWBMODE_OFF;
-                    case "auto":
-                    default:
-                        return MMAL_PARAM_AWBMODE_AUTO;
-                }
-            } catch (SettingNotFoundException)
-            {
-                return MMAL_PARAM_AWBMODE_AUTO;
+                return MMAL_PARAM_AWBMODE_SUNLIGHT;
             }
-        case "saturation":
-        case "sharpness":
-        case "contrast":
-            // Values between 0 - 100; default 0
-            try
+            if (value == "cloudy")
             {
-                int value = cfg.lookup(parameter)
-                if (value > 100)
-                {
-                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-                    return 100;
-                }
-                if (value < 0)
-                {
-                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-                    return 0;
-                }
-                return value;
-            } catch (SettingNotFoundException)
+                return MMAL_PARAM_AWBMODE_CLOUDY;
+            }
+            if (value == "shade")
             {
+                return MMAL_PARAM_AWBMODE_SHADE;
+            }
+            if (value == "tungsten")
+            {
+                return MMAL_PARAM_AWBMODE_TUNGSTEN;
+            }
+            if (value == "flourescent")
+            {
+                return MMAL_PARAM_AWBMODE_FLOURESCENT;
+            }
+            if (value == "incandescent")
+            {
+                return MMAL_PARAM_AWBMODE_INCANDESCENT;
+            }
+            if (value == "flash")
+            {
+                return MMAL_PARAM_AWBMODE_FLASH;
+            }
+            if (value == "horizon")
+            {
+                return MMAL_PARAM_AWBMODE_HORIZON;
+            }
+            if (value == "max")
+            {
+                return MMAL_PARAM_AWBMODE_MAX;
+            }
+            if (value == "off")
+            {
+                return MMAL_PARAM_AWBMODE_OFF;
+            }
+            return MMAL_PARAM_AWBMODE_AUTO;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return MMAL_PARAM_AWBMODE_AUTO;
+        }
+    }
+    if (parameter == "saturation" || parameter == "sharpness" || parameter == "contrast")
+    {
+        // Values between 0 - 100; default 0try
+        try
+        {
+            int value = cfg.lookup(parameter);
+            if (value > 100)
+            {
+                std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                return 100;
+            }
+            if (value < 0)
+            {
+                std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
                 return 0;
             }
-        case "brightness":
-            // Values between 0 - 100; default 50
-            try
+            return value;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return 0;
+        }
+    }
+    if (parameter == "brightness")
+    {
+        // Values between 0 - 100; default 0try
+        try
+        {
+            int value = cfg.lookup(parameter);
+            if (value > 100)
             {
-                int value = cfg.lookup(parameter)
-                if (value > 100)
-                {
-                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-                    return 100;
-                }
-                if (value < 0)
-                {
-                    std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-                    return 0;
-                }
-                return value;
-            } catch (SettingNotFoundException)
-            {
-                return 50;
+                std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                return 100;
             }
-        case "exposuremode":
-            // Options: auto, night, nightpreview, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks, max, off
-            try
+            if (value < 0)
             {
-                std::string value = cfg.lookup("exposuremode")
-                switch(value)
+                std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
+                return 0;
+            }
+            return value;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return 50;
+        }
+    }
+    if (parameter == "exposuremode")
+    {
+        // Options: auto, night, nightpreview, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks, max, off
+        try
+        {
+            std::string value = cfg.lookup("exposuremode");
+                if (value == "night")
                 {
-                    case "night":
-                        return MMAL_PARAM_EXPOSUREMODE_NIGHT;
-                    case "nightpreview":
-                        return MMAL_PARAM_EXPOSUREMODE_NIGHTPREVIEW;
-                    case "backlight":
-                        return MMAL_PARAM_EXPOSUREMODE_BACKLIGHT;
-                    case "spotlight":
-                        return MMAL_PARAM_EXPOSUREMODE_SPOTLIGHT;
-                    case "sports":
-                        return MMAL_PARAM_EXPOSUREMODE_SPORTS;
-                    case "snow":
-                        return MMAL_PARAM_EXPOSUREMODE_SNOW;
-                    case "beach":
-                        return MMAL_PARAM_EXPOSUREMODE_BEACH;
-                    case "verylong":
-                        return MMAL_PARAM_EXPOSUREMODE_VERYLONG;
-                    case "fixedfps":
-                        return MMAL_PARAM_EXPOSUREMODE_FIXEDFPS;
-                    case "antishake":
-                        return MMAL_PARAM_EXPOSUREMODE_ANTISHAKE;
-                    case "fireworks":
-                        return MMAL_PARAM_EXPOSUREMODE_FIREWORKS;
-                    case "max":
-                        return MMAL_PARAM_EXPOSUREMODE_MAX;
-                    case "off":
-                        return MMAL_PARAM_EXPOSUREMODE_OFF;
-                    case "auto":
-                    default:
-                        return MMAL_PARAM_EXPOSUREMODE_AUTO;
+                    return MMAL_PARAM_EXPOSUREMODE_NIGHT;
                 }
-            } catch (SettingNotFoundException)
-            {
+                if (value == "nightpreview")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_NIGHTPREVIEW;
+                }
+                if (value == "backlight")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_BACKLIGHT;
+                }
+                if (value == "spotlight")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_SPOTLIGHT;
+                }
+                if (value == "sports")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_SPORTS;
+                }
+                if (value == "snow")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_SNOW;
+                }
+                if (value == "beach")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_BEACH;
+                }
+                if (value == "verylong")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_VERYLONG;
+                }
+                if (value == "fixedfps")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_FIXEDFPS;
+                }
+                if (value == "antishake")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_ANTISHAKE;
+                }
+                if (value == "fireworks")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_FIREWORKS;
+                }
+                if (value == "max")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_MAX;
+                }
+                if (value == "off")
+                {
+                    return MMAL_PARAM_EXPOSUREMODE_OFF;
+                }
                 return MMAL_PARAM_EXPOSUREMODE_AUTO;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return MMAL_PARAM_EXPOSUREMODE_AUTO;
+        }
+    }
+    if (parameter == "meteringmode")
+    {
+        // Options: average, spot, backlit, matrix, max
+        try
+        {
+            std::string value = cfg.lookup("meteringmode");
+            if (value == "spot")
+            {
+                return MMAL_PARAM_EXPOSUREMETERINGMODE_SPOT;
             }
-        case "meteringmode":
-            // Options: average, spot, backlit, matrix, max
-            try
+            if (value == "backlit")
             {
-                std::string value = cfg.lookup("meteringmode")
-                switch(value)
-                {
-                    case "spot":
-                        return MMAL_PARAM_EXPOSUREMETERINGMODE_NIGHT;
-                    case "backlit":
-                        return MMAL_PARAM_EXPOSUREMETERINGMODE_NIGHTPREVIEW;
-                    case "matrix":
-                        return MMAL_PARAM_EXPOSUREMETERINGMODE_BACKLIGHT;
-                    case "max":
-                        return MMAL_PARAM_EXPOSUREMETERINGMODE_SPOTLIGHT;
-                    case "average":
-                    default:
-                        return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
-                }
-            } catch (SettingNotFoundException)
-            {
-                return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+                return MMAL_PARAM_EXPOSUREMETERINGMODE_BACKLIT;
             }
-        case "rotation":
-            // Options: none, left, right, 180
-            try
+            if (value == "matrix")
             {
-                std::string value = cfg.lookup("rotation")
-                switch(value)
-                {
-                    case "left":
-                        return 270;
-                    case "right":
-                        return 90;
-                    case "180":
-                        return 180;
-                    case "none":
-                    default:
-                        return 0;
-                }
-            } catch (SettingNotFoundException)
-            {
-                return 0;
+                return MMAL_PARAM_EXPOSUREMETERINGMODE_MATRIX;
             }
-        case "mirror":
-            // Options: none, horizontal, vertical, both
-            try
+            if (value == "max")
             {
-                std::string value = cfg.lookup("mirror")
-                switch(value)
-                {
-                    case "horizontal":
-                        return MMAL_PARAM_MIRROR_HORIZONTAL;
-                    case "vertical":
-                        return MMAL_PARAM_MIRROR_VERTICAL;
-                    case "both":
-                        return MMAL_PARAM_MIRROR_BOTH;
-                    case "none":
-                    default:
-                        return MMAL_PARAM_MIRROR_NONE;
-                }
-            } catch (SettingNotFoundException)
-            {
-                return MMAL_PARAM_MIRROR_NONE;
+                return MMAL_PARAM_EXPOSUREMETERINGMODE_MAX;
             }
+            return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
+        }
+    }
+    if (parameter == "rotation")
+    {
+        // Options: 0, 90, 180, 270
+        try
+        {
+            int value = cfg.lookup("rotation");
+            switch(value)
+            {
+                case 90:
+                    return 90;
+                case 180:
+                    return 180;
+                case 270:
+                    return 270;
+                case 0:
+                default:
+                    return 0;
+            }
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return 0;
+        }
+    }
+    if (parameter == "mirror")
+    {
+        // Options: none, horizontal, vertical, both
+        try
+        {
+            std::string value = cfg.lookup("mirror");
+            if (value == "horizontal")
+            {
+                return MMAL_PARAM_MIRROR_HORIZONTAL;
+            }
+            if (value == "vertical")
+            {
+                return MMAL_PARAM_MIRROR_VERTICAL;
+            }
+            if (value == "both")
+            {
+                return MMAL_PARAM_MIRROR_BOTH;
+            }
+            return MMAL_PARAM_MIRROR_NONE;
+        } catch (libconfig::SettingNotFoundException)
+        {
+            return MMAL_PARAM_MIRROR_NONE;
+        }
     }
 }
 
