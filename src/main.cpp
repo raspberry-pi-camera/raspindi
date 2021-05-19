@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
         std::cout << "Failed to set exposure parameter." << std::endl;
     }
 
-    MMAL_PARAMETER_EXPOSUREMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getMeteringMode()};
+    MMAL_PARAMETER_EXPOSUREMETERINGMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMETERINGMODE_T)}, getMeteringMode()};
     if(mmal_port_parameter_set(camera->control, &meter_mode.hdr) != MMAL_SUCCESS)
     {
         std::cout << "Failed to set metering parameter." << std::endl;
