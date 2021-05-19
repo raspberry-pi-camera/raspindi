@@ -76,6 +76,9 @@ works well.
 
 # Changelog
 
+## v2.0.1
+Added config parameters for various camera settings (AWB, exposure etc.)
+
 ## v2.0.0
 Completely new method of acquiring the images - now calling `mmal` directly.  
 This, as well as using YUV colour, drastically improves the speed of the system,
