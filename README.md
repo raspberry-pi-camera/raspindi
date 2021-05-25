@@ -7,6 +7,12 @@ in 2020.
 It uses the NDI library, allowing for auto-discovery of streams on the local
 network.
 
+## Supported boards
+
+This software is tested with Raspberry Pi 3B+ boards. Some users have had success
+running it on a Rapsberry Pi 4. **The Pi Zero W does not have enough memory to run
+this software**
+
 ## Getting started
 
 These intructions are for a clean installation of
