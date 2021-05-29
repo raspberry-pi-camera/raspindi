@@ -9,7 +9,6 @@ mkdir "$LIB_DIR"
 mkdir "$BIN_DIR"
 
 cp lib/ndi/* "$LIB_DIR"
-cp lib/raspicam/* "$LIB_DIR"
 
 cp build/raspindi "$BIN_DIR"
 
