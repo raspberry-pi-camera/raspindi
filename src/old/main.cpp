@@ -245,41 +245,6 @@ MMAL_PARAM_MIRROR_T getMirror()
         return MMAL_PARAM_MIRROR_NONE;
     }
 }
-MMAL_PARAM_FLICKERAVOID_T getFlickerAvoidMode()
-{
-    // Options: off, auto, 50hz, 60hz, max
-    try
-    {
-        std::string value = cfg.lookup("flickeravoid");
-        if (value == "auto")
-        {
-            return MMAL_PARAM_FLICKERAVOID_AUTO;
-        }
-        if (value == "50hz")
-        {
-            return MMAL_PARAM_FLICKERAVOID_50HZ;
-        }
-        if (value == "60hz")
-        {
-            return MMAL_PARAM_FLICKERAVOID_60HZ;
-        }
-        if (value == "max")
-        {
-            return MMAL_PARAM_FLICKERAVOID_MAX;
-        }
-        if (value == "off")
-        {
-            return MMAL_PARAM_FLICKERAVOID_OFF;
-        }
-        return MMAL_PARAM_FLICKERAVOID_OFF;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_FLICKERAVOID_OFF;
-    }
-
-
-
-}
 int _getIntVal(std::string parameter, int defaultValue)
 {
     try
