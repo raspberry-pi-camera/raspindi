@@ -519,6 +519,15 @@ int main(int argc, char* argv[])
         std::cout << "Failed to set flip parameter." << std::endl;
     }
 
+    MMAL_PARAMETER_FLICKERAVOID_T flickeravoid = {{MMAL_PARAMETER_FLICKER_AVOID, sizeof(MMAL_PARAMETER_FLICKERAVOID_T), getFlickerAvoidMode()}};
+    if (    mmal_port_parameter_set(camera->output[0], &flickeravoid.hdr) != MMAL_SUCCESS ||
+            mmal_port_parameter_set(camera->output[1], &flickeravoid.hdr) != MMAL_SUCCESS ||
+            mmal_port_parameter_set(camera->output[2], &flickeravoid.hdr))
+    {
+        std::cout << "Failed to set flicker avoid parameter." << std::endl;
+    }
+    
+
     // Start Capture
     if (mmal_port_parameter_set_boolean(video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
     {
