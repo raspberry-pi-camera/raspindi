@@ -1,447 +1,297 @@
-#include <csignal>
-#include <cstddef>
-#include <cstring>
-#include <cstdio>
-#include <cstdlib>
-#include <atomic>
-#include <string>
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * Copyright (C) 2020, Ideas on Board Oy.
+ *
+ * A simple libcamera capture example
+ */
 
+#include <iomanip>
 #include <iostream>
-#include <fstream>
+#include <memory>
+#include <sys/mman.h>
 
-#include <unistd.h>
-#include <interface/mmal/mmal.h>
-#include <interface/mmal/util/mmal_util.h>
-#include <interface/mmal/util/mmal_util_params.h>
-#include <interface/mmal/util/mmal_default_components.h>
+#include <libcamera/libcamera.h>
+
+#include "event_loop.h"
 
 #include <Processing.NDI.Embedded.h>
 
-#include <libconfig.h++>
+#define TIMEOUT_SEC 300
 
-#include "fraction.cpp"
+using namespace libcamera;
+static std::shared_ptr<Camera> camera;
+static EventLoop loop;
 
-#define VERSION "2.0.1"
+std::mutex mtx;
 
-
-#define MMAL_CAMERA_VIDEO_PORT 1
-#define MMAL_CAMERA_CAPTURE_PORT 2
-#define VIDEO_FRAME_RATE_DEN 1
-#define VIDEO_OUTPUT_BUFFERS_NUM 3
-
-void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer);
-
-static std::atomic<bool> exit_loop(false);
-
-MMAL_ES_FORMAT_T *format=nullptr;
-MMAL_POOL_T *video_pool;
-MMAL_BUFFER_HEADER_T *buffer;
-MMAL_COMPONENT_T *camera = 0;
-MMAL_PORT_T  *video_port = NULL;
-MMAL_STATUS_T status;
-
-std::ofstream neopixel;
-
-int width = 1920;
-int height = 1080;
-int framerate = 25;
 
 NDIlib_tally_t NDI_tally;
 NDIlib_send_create_t NDI_send_create_desc;
 NDIlib_send_instance_t pNDI_send;
 NDIlib_video_frame_v2_t NDI_video_frame;
 
-libconfig::Config cfg;
+/*
+ * --------------------------------------------------------------------
+ * Handle RequestComplete
+ *
+ * For each Camera::requestCompleted Signal emitted from the Camera the
+ * connected Slot is invoked.
+ *
+ * The Slot is invoked in the CameraManager's thread, hence one should avoid
+ * any heavy processing here. The processing of the request shall be re-directed
+ * to the application's thread instead, so as not to block the CameraManager's
+ * thread for large amount of time.
+ *
+ * The Slot receives the Request as a parameter.
+ */
 
+static void processRequest(Request *request);
 
-static void sigint_handler(int)
+static void requestComplete(Request *request)
 {
-	exit_loop = true;
+	if (request->status() == Request::RequestCancelled)
+		return;
+
+	loop.callLater(std::bind(&processRequest, request));
 }
 
-int loadConfig()
+static void processRequest(Request *request)
 {
-	try
-	{
-		cfg.readFile("/etc/raspindi.conf");
+	const Request::BufferMap &buffers = request->buffers();
+
+	for (auto bufferPair : buffers) {
+		// (Unused) Stream *stream = bufferPair.first;
+		FrameBuffer *buffer = bufferPair.second;
+		const FrameMetadata &metadata = buffer->metadata();
+
+		/* Print some information about the buffer which has completed. */
+		std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence
+			  << " bytesused: ";
+
+        size_t buffer_size = 0;
+        void *memory;
+        for (unsigned i = 0; i < buffer->planes().size(); i++)
+        {
+            const FrameBuffer::Plane &plane = buffer->planes()[i];
+            buffer_size += plane.length;
+            if (i == buffer->planes().size() - 1 || plane.fd.get() != buffer->planes()[i + 1].fd.get())
+            {
+                memory = mmap(NULL, buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
+                buffer_size = 0;
+            }
+        }
+
+        NDI_video_frame.p_data = (uint8_t*)memory;
+        NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
 	}
-	catch(const libconfig::FileIOException &fioex)
-	{
-		std::cerr << "Could not open config file /etc/raspindi.conf"
-			<< std::endl;
-		return(EXIT_FAILURE);
+
+	/* Re-queue the Request to the camera. */
+	request->reuse(Request::ReuseBuffers);
+	camera->queueRequest(request);
+}
+
+/*
+ * ----------------------------------------------------------------------------
+ * Camera Naming.
+ *
+ * Applications are responsible for deciding how to name cameras, and present
+ * that information to the users. Every camera has a unique identifier, though
+ * this string is not designed to be friendly for a human reader.
+ *
+ * To support human consumable names, libcamera provides camera properties
+ * that allow an application to determine a naming scheme based on its needs.
+ *
+ * In this example, we focus on the location property, but also detail the
+ * model string for external cameras, as this is more likely to be visible
+ * information to the user of an externally connected device.
+ *
+ * The unique camera ID is appended for informative purposes.
+ */
+std::string cameraName(Camera *camera)
+{
+	const ControlList &props = camera->properties();
+	std::string name;
+
+	switch (props.get(properties::Location)) {
+	case properties::CameraLocationFront:
+		name = "Internal front camera";
+		break;
+	case properties::CameraLocationBack:
+		name = "Internal back camera";
+		break;
+	case properties::CameraLocationExternal:
+		name = "External camera";
+		if (props.contains(properties::Model))
+			name += " '" + props.get(properties::Model) + "'";
+		break;
 	}
-	catch(const libconfig::ParseException &pex)
-	{
-		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-              << " - " << pex.getError() << std::endl;
-    	return(EXIT_FAILURE);
+
+	name += " (" + camera->id() + ")";
+
+	return name;
+}
+
+int main()
+{
+
+	/*
+	 * --------------------------------------------------------------------
+	 * Create a Camera Manager.
+	 *
+	 * The Camera Manager is responsible for enumerating all the Camera
+	 * in the system, by associating Pipeline Handlers with media entities
+	 * registered in the system.
+	 *
+	 * The CameraManager provides a list of available Cameras that
+	 * applications can operate on.
+	 *
+	 * When the CameraManager is no longer to be used, it should be deleted.
+	 * We use a unique_ptr here to manage the lifetime automatically during
+	 * the scope of this function.
+	 *
+	 * There can only be a single CameraManager constructed within any
+	 * process space.
+	 */
+	std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
+	cm->start();
+
+	/*
+	 * Just as a test, generate names of the Cameras registered in the
+	 * system, and list them.
+	 */
+	for (auto const &camera : cm->cameras())
+		std::cout << " - " << cameraName(camera.get()) << std::endl;
+
+	/*
+	 * --------------------------------------------------------------------
+	 * Camera
+	 *
+	 * Camera are entities created by pipeline handlers, inspecting the
+	 * entities registered in the system and reported to applications
+	 * by the CameraManager.
+	 *
+	 * In general terms, a Camera corresponds to a single image source
+	 * available in the system, such as an image sensor.
+	 *
+	 * Application lock usage of Camera by 'acquiring' them.
+	 * Once done with it, application shall similarly 'release' the Camera.
+	 *
+	 * As an example, use the first available camera in the system after
+	 * making sure that at least one camera is available.
+	 *
+	 * Cameras can be obtained by their ID or their index, to demonstrate
+	 * this, the following code gets the ID of the first camera; then gets
+	 * the camera associated with that ID (which is of course the same as
+	 * cm->cameras()[0]).
+	 */
+	if (cm->cameras().empty()) {
+		std::cout << "No cameras were identified on the system."
+			  << std::endl;
+		cm->stop();
+		return EXIT_FAILURE;
 	}
-	return 0;
-}
 
-MMAL_PARAM_AWBMODE_T getAwbMode()
-{
-    try
-    {
-        std::string value = cfg.lookup("awb");
-        if (value == "sunlight")
-        {
-            return MMAL_PARAM_AWBMODE_SUNLIGHT;
-        }
-        if (value == "cloudy")
-        {
-            return MMAL_PARAM_AWBMODE_CLOUDY;
-        }
-        if (value == "shade")
-        {
-            return MMAL_PARAM_AWBMODE_SHADE;
-        }
-        if (value == "tungsten")
-        {
-            return MMAL_PARAM_AWBMODE_TUNGSTEN;
-        }
-        if (value == "fluorescent")
-        {
-            return MMAL_PARAM_AWBMODE_FLUORESCENT;
-        }
-        if (value == "incandescent")
-        {
-            return MMAL_PARAM_AWBMODE_INCANDESCENT;
-        }
-        if (value == "flash")
-        {
-            return MMAL_PARAM_AWBMODE_FLASH;
-        }
-        if (value == "horizon")
-        {
-            return MMAL_PARAM_AWBMODE_HORIZON;
-        }
-        if (value == "max")
-        {
-            return MMAL_PARAM_AWBMODE_MAX;
-        }
-        if (value == "off")
-        {
-            return MMAL_PARAM_AWBMODE_OFF;
-        }
-        return MMAL_PARAM_AWBMODE_AUTO;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_AWBMODE_AUTO;
-    }
-}
-MMAL_PARAMETER_AWB_GAINS_T getAwbGains()
-{
-    try
-    {
-        float r_gain = cfg.lookup("r_gain");
-        float b_gain = cfg.lookup("b_gain");
-        fraction_t r_frac, b_frac;
-        r_frac = findFraction(r_gain);
-        b_frac = findFraction(b_gain);
-        MMAL_PARAMETER_AWB_GAINS_T awbGains;
-        awbGains.hdr.id = MMAL_PARAMETER_CUSTOM_AWB_GAINS;
-        awbGains.hdr.size = sizeof(awbGains);
-        awbGains.b_gain.num = b_frac.num;
-        awbGains.b_gain.den = b_frac.den;
-        awbGains.r_gain.num = r_frac.num;
-        awbGains.r_gain.den = r_frac.den;
-        return awbGains;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        MMAL_PARAMETER_AWB_GAINS_T awbGains;
-        awbGains.hdr.id = MMAL_PARAMETER_CUSTOM_AWB_GAINS;
-        awbGains.hdr.size = sizeof(awbGains);
-        awbGains.b_gain.num = 1;
-        awbGains.b_gain.den = 1;
-        awbGains.r_gain.num = 1;
-        awbGains.r_gain.den = 1;
-        return awbGains;
-    }
-}
-MMAL_PARAM_EXPOSUREMODE_T getExposureMode()
-{
-    // Options: auto, night, nightpreview, backlight, spotlight, sports, snow, beach, verylong, fixedfps, antishake, fireworks, max, off
-    try
-    {
-        std::string value = cfg.lookup("exposuremode");
-        if (value == "night")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_NIGHT;
-        }
-        if (value == "nightpreview")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_NIGHTPREVIEW;
-        }
-        if (value == "backlight")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_BACKLIGHT;
-        }
-        if (value == "spotlight")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_SPOTLIGHT;
-        }
-        if (value == "sports")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_SPORTS;
-        }
-        if (value == "snow")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_SNOW;
-        }
-        if (value == "beach")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_BEACH;
-        }
-        if (value == "verylong")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_VERYLONG;
-        }
-        if (value == "fixedfps")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_FIXEDFPS;
-        }
-        if (value == "antishake")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_ANTISHAKE;
-        }
-        if (value == "fireworks")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_FIREWORKS;
-        }
-        if (value == "max")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_MAX;
-        }
-        if (value == "off")
-        {
-            return MMAL_PARAM_EXPOSUREMODE_OFF;
-        }
-        return MMAL_PARAM_EXPOSUREMODE_AUTO;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_EXPOSUREMODE_AUTO;
-    }
-}
-MMAL_PARAM_EXPOSUREMETERINGMODE_T getMeteringMode()
-{
-    // Options: average, spot, backlit, matrix, max
-    try
-    {
-        std::string value = cfg.lookup("meteringmode");
-        if (value == "spot")
-        {
-            return MMAL_PARAM_EXPOSUREMETERINGMODE_SPOT;
-        }
-        if (value == "backlit")
-        {
-            return MMAL_PARAM_EXPOSUREMETERINGMODE_BACKLIT;
-        }
-        if (value == "matrix")
-        {
-            return MMAL_PARAM_EXPOSUREMETERINGMODE_MATRIX;
-        }
-        if (value == "max")
-        {
-            return MMAL_PARAM_EXPOSUREMETERINGMODE_MAX;
-        }
-        return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_EXPOSUREMETERINGMODE_AVERAGE;
-    }
-}
-MMAL_PARAM_MIRROR_T getMirror()
-{
-    // Options: none, horizontal, vertical, both
-    try
-    {
-        std::string value = cfg.lookup("mirror");
-        if (value == "horizontal")
-        {
-            return MMAL_PARAM_MIRROR_HORIZONTAL;
-        }
-        if (value == "vertical")
-        {
-            return MMAL_PARAM_MIRROR_VERTICAL;
-        }
-        if (value == "both")
-        {
-            return MMAL_PARAM_MIRROR_BOTH;
-        }
-        return MMAL_PARAM_MIRROR_NONE;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_MIRROR_NONE;
-    }
-}
-MMAL_PARAM_FLICKERAVOID_T getFlickerAvoidMode()
-{
-    // Options: off, auto, 50hz, 60hz, max
-    try
-    {
-        std::string value = cfg.lookup("flickeravoid");
-        if (value == "auto")
-        {
-            return MMAL_PARAM_FLICKERAVOID_AUTO;
-        }
-        if (value == "50hz")
-        {
-            return MMAL_PARAM_FLICKERAVOID_50HZ;
-        }
-        if (value == "60hz")
-        {
-            return MMAL_PARAM_FLICKERAVOID_60HZ;
-        }
-        if (value == "max")
-        {
-            return MMAL_PARAM_FLICKERAVOID_MAX;
-        }
-        if (value == "off")
-        {
-            return MMAL_PARAM_FLICKERAVOID_OFF;
-        }
-        return MMAL_PARAM_FLICKERAVOID_OFF;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return MMAL_PARAM_FLICKERAVOID_OFF;
-    }
-}
-int _getIntVal(std::string parameter, int defaultValue)
-{
-    try
-    {
-        int value = cfg.lookup(parameter);
-        if (value > 100)
-        {
-            std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-            return 100;
-        }
-        if (value < 0)
-        {
-            std::cerr << "Invalid value for " << parameter << ": " << value << std::endl;
-            return 0;
-        }
-        return value;
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return defaultValue;
-    }
-}
-int getSaturation()
-{
-    // Values between 0 - 100; default 0
-    return _getIntVal("saturation", 0);
-}
-int getSharpness()
-{
-    // Values between 0 - 100; default 0
-    return _getIntVal("sharpness", 0);
-}
-int getContrast()
-{
-    // Values between 0 - 100; default 0
-    return _getIntVal("contrast", 0);
-}
-int getBrightness()
-{
-    // Values between 0 - 100; default 0
-    return _getIntVal("brightness", 50);
-}
-int getRotation()
-{
-    // Options: 0, 90, 180, 270
-    try
-    {
-        int value = cfg.lookup("rotation");
-        switch(value)
-        {
-            case 90:
-                return 90;
-            case 180:
-                return 180;
-            case 270:
-                return 270;
-            case 0:
-            default:
-                return 0;
-        }
-    } catch (libconfig::SettingNotFoundException)
-    {
-        return 0;
-    }
-}
+	std::string cameraId = cm->cameras()[0]->id();
+	camera = cm->get(cameraId);
+	camera->acquire();
 
+	/*
+	 * Stream
+	 *
+	 * Each Camera supports a variable number of Stream. A Stream is
+	 * produced by processing data produced by an image source, usually
+	 * by an ISP.
+	 *
+	 *   +-------------------------------------------------------+
+	 *   | Camera                                                |
+	 *   |                +-----------+                          |
+	 *   | +--------+     |           |------> [  Main output  ] |
+	 *   | | Image  |     |           |                          |
+	 *   | |        |---->|    ISP    |------> [   Viewfinder  ] |
+	 *   | | Source |     |           |                          |
+	 *   | +--------+     |           |------> [ Still Capture ] |
+	 *   |                +-----------+                          |
+	 *   +-------------------------------------------------------+
+	 *
+	 * The number and capabilities of the Stream in a Camera are
+	 * a platform dependent property, and it's the pipeline handler
+	 * implementation that has the responsibility of correctly
+	 * report them.
+	 */
 
-int main(int argc, char* argv[])
-{
-	for (int i=0; i < argc; i++) {
-		if (!strcmp("-v", argv[i])) {
-			std::cout << VERSION;
-			return 0;
-		}
+	/*
+	 * --------------------------------------------------------------------
+	 * Camera Configuration.
+	 *
+	 * Camera configuration is tricky! It boils down to assign resources
+	 * of the system (such as DMA engines, scalers, format converters) to
+	 * the different image streams an application has requested.
+	 *
+	 * Depending on the system characteristics, some combinations of
+	 * sizes, formats and stream usages might or might not be possible.
+	 *
+	 * A Camera produces a CameraConfigration based on a set of intended
+	 * roles for each Stream the application requires.
+	 */
+	std::unique_ptr<CameraConfiguration> config =
+		camera->generateConfiguration( { StreamRole::Viewfinder } );
+
+	/*
+	 * The CameraConfiguration contains a StreamConfiguration instance
+	 * for each StreamRole requested by the application, provided
+	 * the Camera can support all of them.
+	 *
+	 * Each StreamConfiguration has default size and format, assigned
+	 * by the Camera depending on the Role the application has requested.
+	 */
+	StreamConfiguration &streamConfig = config->at(0);
+	std::cout << "Default viewfinder configuration is: "
+		  << streamConfig.toString() << std::endl;
+     
+	/*
+	 * Each StreamConfiguration parameter which is part of a
+	 * CameraConfiguration can be independently modified by the
+	 * application.
+	 *
+	 * In order to validate the modified parameter, the CameraConfiguration
+	 * should be validated -before- the CameraConfiguration gets applied
+	 * to the Camera.
+	 *
+	 * The CameraConfiguration validation process adjusts each
+	 * StreamConfiguration to a valid value.
+	 */
+
+	/*
+	 * The Camera configuration procedure fails with invalid parameters.
+	 */
+#if 0
+	streamConfig.size.width = 0; //4096
+	streamConfig.size.height = 0; //2560
+
+	int ret = camera->configure(config.get());
+	if (ret) {
+		std::cout << "CONFIGURATION FAILED!" << std::endl;
+		return EXIT_FAILURE;
 	}
-	int loaded = loadConfig();
-	if (loaded > 0) {
-		return loaded;
-	}
-    signal(SIGINT, sigint_handler);
+#endif
 
-    std::string neopixelpath = cfg.lookup("neopixel_path");
-	width = std::stoi(cfg.lookup("width"));
-	height = std::stoi(cfg.lookup("height"));
-	framerate = std::stoi(cfg.lookup("fps"));
+    streamConfig.size.width = 1280;
+    streamConfig.size.height = 720;
 
-    // create_camera_component
-    status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
+	/*
+	 * Validating a CameraConfiguration -before- applying it will adjust it
+	 * to a valid configuration which is as close as possible to the one
+	 * requested.
+	 */
+	config->validate();
+	std::cout << "Validated viewfinder configuration is: "
+		  << streamConfig.toString() << std::endl;
 
-    if (status != MMAL_SUCCESS)
-    {
-        std::cerr << "Failed to create camera component" << std::endl;
-        exit(1);
-    }
-
-    if (!camera->output_num)
-    {
-        std::cerr << "Camera doesn't have output ports" << std::endl;
-        mmal_component_destroy(camera);
-        exit(1);
-    }
-
-    video_port = camera->output[MMAL_CAMERA_VIDEO_PORT];
-
-
-    //  set up the camera configuration
-    MMAL_PARAMETER_CAMERA_CONFIG_T cam_config;
-    cam_config.hdr.id = MMAL_PARAMETER_CAMERA_CONFIG;
-    cam_config.hdr.size = sizeof(cam_config);
-    cam_config.max_stills_w = VCOS_ALIGN_UP(width, 32);
-    cam_config.max_stills_h = VCOS_ALIGN_UP(height, 16);
-    cam_config.stills_yuv422 = 0;
-    cam_config.one_shot_stills = 0;
-    cam_config.max_preview_video_w = VCOS_ALIGN_UP(width, 32);
-    cam_config.max_preview_video_h = VCOS_ALIGN_UP(height, 16);
-    cam_config.num_preview_video_frames = 3;
-    cam_config.stills_capture_circular_buffer_height = 0;
-    cam_config.fast_preview_resume = 0;
-    cam_config.use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC;
-    mmal_port_parameter_set(camera->control, &cam_config.hdr);
-
-
-    // Set the encode format on the video port
-    format = video_port->format;
-    format->encoding_variant =  MMAL_ENCODING_I420;
-    format->encoding = MMAL_ENCODING_I420;
-    format->es->video.width = VCOS_ALIGN_UP(width, 32);
-    format->es->video.height = VCOS_ALIGN_UP(height, 16);
-    format->es->video.crop.x = 0;
-    format->es->video.crop.y = 0;
-    format->es->video.crop.width = VCOS_ALIGN_UP(width, 32);
-    format->es->video.crop.height = VCOS_ALIGN_UP(height, 16);;
-    format->es->video.frame_rate.num =  framerate;
-    format->es->video.frame_rate.den = VIDEO_FRAME_RATE_DEN;
-    format->es->video.color_space = MMAL_COLOR_SPACE_ITUR_BT709;
+	/*
+	 * Once we have a validated configuration, we can apply it to the
+	 * Camera.
+	 */
+	camera->configure(config.get());
 
 
     NDI_send_create_desc.p_ndi_name = "Video Feed";
@@ -451,201 +301,157 @@ int main(int argc, char* argv[])
 		std::cerr << "Failed to create NDI Send" << std::endl;
         exit(1);
 	}
-    NDI_video_frame.xres = format->es->video.width;
-    NDI_video_frame.yres = format->es->video.height;
-    NDI_video_frame.FourCC = NDIlib_FourCC_type_I420;
-
-    if (format->es->video.width != width || format->es->video.height != height)
-    {
-        std::cout << "Aspect ratio forced to: " << format->es->video.width << " x " << format->es->video.height << std::endl;
-    }
-
-
-    status = mmal_port_format_commit(video_port);
-    if (status)
-    {
-        std::cerr << "camera video format couldn't be set" << std::endl;
-        mmal_component_destroy(camera);
-        exit(1);
-    }
-
-    status = mmal_port_enable(video_port, video_buffer_callback);
-    if (status)
-    {
-        std::cerr << "camera video callback2 error" << std::endl;
-        mmal_component_destroy(camera);
-        exit(1);
-    }
+    NDI_video_frame.xres = streamConfig.size.width;
+    std::cout << "Width: " << streamConfig.size.width << std::endl;
+    NDI_video_frame.yres = streamConfig.size.height;
+    std::cout << "Height: " << streamConfig.size.height << std::endl;
+    NDI_video_frame.FourCC = NDIlib_FourCC_type_NV12;
+    NDI_video_frame.line_stride_in_bytes = streamConfig.stride;
+	NDI_video_frame.p_data = (uint8_t*)malloc(NDI_video_frame.xres * NDI_video_frame.yres * 4);
 
 
-    NDI_video_frame.line_stride_in_bytes = mmal_encoding_width_to_stride(MMAL_ENCODING_I420, video_port->format->es->video.width);;
+	/*
+	 * --------------------------------------------------------------------
+	 * Buffer Allocation
+	 *
+	 * Now that a camera has been configured, it knows all about its
+	 * Streams sizes and formats. The captured images need to be stored in
+	 * framebuffers which can either be provided by the application to the
+	 * library, or allocated in the Camera and exposed to the application
+	 * by libcamera.
+	 *
+	 * An application may decide to allocate framebuffers from elsewhere,
+	 * for example in memory allocated by the display driver that will
+	 * render the captured frames. The application will provide them to
+	 * libcamera by constructing FrameBuffer instances to capture images
+	 * directly into.
+	 *
+	 * Alternatively libcamera can help the application by exporting
+	 * buffers allocated in the Camera using a FrameBufferAllocator
+	 * instance and referencing a configured Camera to determine the
+	 * appropriate buffer size and types to create.
+	 */
+	FrameBufferAllocator *allocator = new FrameBufferAllocator(camera);
 
-    video_port->buffer_size = video_port->buffer_size_recommended;
-    video_port->buffer_num = video_port->buffer_num_recommended;
-    video_pool = mmal_port_pool_create(video_port, video_port->buffer_num, video_port->buffer_size);
-    if(!video_pool)
-    {
-        std::cerr << "Failed to create buffer header pool for video output port" << std::endl;
-        exit(1);
-    }
-
-
-    /* Enable component */
-    status = mmal_component_enable(camera);
-
-    if (status)
-    {
-        std::cerr << "camera component couldn't be enabled" << std::endl;
-        mmal_component_destroy(camera);
-        exit(1);
-    }
-
-    MMAL_PARAMETER_AWBMODE_T awbParam = {{MMAL_PARAMETER_AWB_MODE,sizeof(MMAL_PARAMETER_AWBMODE_T)}, getAwbMode()};
-    if(mmal_port_parameter_set(camera->control, &awbParam.hdr) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set awb parameter." << std::endl;
-    }
-    MMAL_PARAMETER_AWB_GAINS_T awbGains =  getAwbGains();
-    if(mmal_port_parameter_set(camera->control, &awbGains.hdr) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set awb gains." << std::endl;
-    }
-    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SATURATION, (MMAL_RATIONAL_T){getSaturation(), 100}) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set saturation parameter." << std::endl;
-    } 
-    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SHARPNESS, (MMAL_RATIONAL_T) {getSharpness(), 100}) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set sharpness parameter." << std::endl;
-    }
-    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_CONTRAST, (MMAL_RATIONAL_T) {getContrast(), 100}) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set contrast parameter." << std::endl;
-    }
-    if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_BRIGHTNESS, (MMAL_RATIONAL_T) {getBrightness(), 100}) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set brightness parameter." << std::endl;
-    }
-    MMAL_PARAMETER_EXPOSUREMODE_T exp_mode = {{MMAL_PARAMETER_EXPOSURE_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMODE_T)}, getExposureMode()};
-    if(mmal_port_parameter_set(camera->control, &exp_mode.hdr) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set exposure parameter." << std::endl;
-    }
-
-    MMAL_PARAMETER_EXPOSUREMETERINGMODE_T meter_mode = {{MMAL_PARAMETER_EXP_METERING_MODE, sizeof(MMAL_PARAMETER_EXPOSUREMETERINGMODE_T)}, getMeteringMode()};
-    if(mmal_port_parameter_set(camera->control, &meter_mode.hdr) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set metering parameter." << std::endl;
-    }
-
-    int rotation = getRotation();
-    mmal_port_parameter_set_int32(camera->output[0], MMAL_PARAMETER_ROTATION, rotation);
-    mmal_port_parameter_set_int32(camera->output[1], MMAL_PARAMETER_ROTATION, rotation);
-    mmal_port_parameter_set_int32(camera->output[2], MMAL_PARAMETER_ROTATION, rotation);
-
-    MMAL_PARAMETER_MIRROR_T mirror = {{MMAL_PARAMETER_MIRROR, sizeof(MMAL_PARAMETER_MIRROR_T)}, getMirror()};
-
-    if (    mmal_port_parameter_set(camera->output[0], &mirror.hdr) != MMAL_SUCCESS ||
-            mmal_port_parameter_set(camera->output[1], &mirror.hdr) != MMAL_SUCCESS ||
-            mmal_port_parameter_set(camera->output[2], &mirror.hdr))
-    {
-        std::cout << "Failed to set flip parameter." << std::endl;
-    }
-
-   MMAL_PARAMETER_FLICKERAVOID_T flickeravoid = {{MMAL_PARAMETER_FLICKER_AVOID, sizeof(MMAL_PARAMETER_FLICKERAVOID_T)}, getFlickerAvoidMode()};
-   if (     mmal_port_parameter_set(camera->control, &flickeravoid.hdr) != MMAL_SUCCESS)
-    {
-        std::cout << "Failed to set flicker avoid parameter." << std::endl;
-    }
-    
-
-    // Start Capture
-    if (mmal_port_parameter_set_boolean(video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
-    {
-        mmal_port_disable(video_port);
-        mmal_component_disable(camera);
-        mmal_port_pool_destroy(camera->output[MMAL_CAMERA_VIDEO_PORT], video_pool);
-        mmal_component_destroy(camera);
-        std::cerr << "Failed to start capture" << std::endl;
-        return false;
-    }
-
-    int num = mmal_queue_length(video_pool->queue);
-    for (int i=0; i < num; i++)
-    {
-        MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(video_pool->queue);
-
-        if (!buffer)
-        {
-            std::cerr << "Unable to get a required buffer" << i << " from pool queue" << std::endl;
-        }
-        if (mmal_port_send_buffer(video_port, buffer) != MMAL_SUCCESS)
-        {
-            std::cerr<<"Unable to send a buffer to encoder output port "<< i <<std::endl;
-        }
-    }
-    while (!exit_loop)
-    {
-		// Get Tally information
-		NDIlib_send_get_tally(pNDI_send, &NDI_tally, 0);
-		if (NDI_tally.on_program)
-		{
-			neopixel.open(neopixelpath);
-			neopixel << "L";
-			neopixel.close();
-		} else if (NDI_tally.on_preview)
-		{
-			neopixel.open(neopixelpath);
-			neopixel << "P";
-			neopixel.close();
-		} else
-		{
-			neopixel.open(neopixelpath);
-			neopixel << "N";
-			neopixel.close();
+	for (StreamConfiguration &cfg : *config) {
+		int ret = allocator->allocate(cfg.stream());
+		if (ret < 0) {
+			std::cerr << "Can't allocate buffers" << std::endl;
+			return EXIT_FAILURE;
 		}
-    }
-    mmal_port_disable(video_port);
-    mmal_component_disable(camera);
-    mmal_port_pool_destroy(camera->output[MMAL_CAMERA_VIDEO_PORT], video_pool);
-    mmal_component_destroy(camera);
 
-    NDIlib_send_send_video_v2(pNDI_send, NULL);
+		size_t allocated = allocator->buffers(cfg.stream()).size();
+		std::cout << "Allocated " << allocated << " buffers for stream" << std::endl;
+	}
 
-	NDIlib_send_destroy(pNDI_send);
+	/*
+	 * --------------------------------------------------------------------
+	 * Frame Capture
+	 *
+	 * libcamera frames capture model is based on the 'Request' concept.
+	 * For each frame a Request has to be queued to the Camera.
+	 *
+	 * A Request refers to (at least one) Stream for which a Buffer that
+	 * will be filled with image data shall be added to the Request.
+	 *
+	 * A Request is associated with a list of Controls, which are tunable
+	 * parameters (similar to v4l2_controls) that have to be applied to
+	 * the image.
+	 *
+	 * Once a request completes, all its buffers will contain image data
+	 * that applications can access and for each of them a list of metadata
+	 * properties that reports the capture parameters applied to the image.
+	 */
+	Stream *stream = streamConfig.stream();
+	const std::vector<std::unique_ptr<FrameBuffer>> &buffers = allocator->buffers(stream);
+	std::vector<std::unique_ptr<Request>> requests;
+	for (unsigned int i = 0; i < buffers.size(); ++i) {
+		std::unique_ptr<Request> request = camera->createRequest();
+		if (!request)
+		{
+			std::cerr << "Can't create request" << std::endl;
+			return EXIT_FAILURE;
+		}
 
-	NDIlib_destroy();
+		const std::unique_ptr<FrameBuffer> &buffer = buffers[i];
+		int ret = request->addBuffer(stream, buffer.get());
+		if (ret < 0)
+		{
+			std::cerr << "Can't set buffer for request"
+				  << std::endl;
+			return EXIT_FAILURE;
+		}
 
-}
+		/*
+		 * Controls can be added to a request on a per frame basis.
+		 */
+		ControlList &controls = request->controls();
+		controls.set(controls::Brightness, 0.5);
 
+		requests.push_back(std::move(request));
+	}
 
-void video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
-{
-    MMAL_BUFFER_HEADER_T *new_buffer;
-    if (buffer->length > 0)
-    {
-        mmal_buffer_header_mem_lock(buffer );
-        NDI_video_frame.p_data = (uint8_t*)buffer->data;
-        NDIlib_send_send_video_v2(pNDI_send, &NDI_video_frame);
-    
-        mmal_buffer_header_mem_unlock(buffer );
+	/*
+	 * --------------------------------------------------------------------
+	 * Signal&Slots
+	 *
+	 * libcamera uses a Signal&Slot based system to connect events to
+	 * callback operations meant to handle them, inspired by the QT graphic
+	 * toolkit.
+	 *
+	 * Signals are events 'emitted' by a class instance.
+	 * Slots are callbacks that can be 'connected' to a Signal.
+	 *
+	 * A Camera exposes Signals, to report the completion of a Request and
+	 * the completion of a Buffer part of a Request to support partial
+	 * Request completions.
+	 *
+	 * In order to receive the notification for request completions,
+	 * applications shall connecte a Slot to the Camera 'requestCompleted'
+	 * Signal before the camera is started.
+	 */
+	camera->requestCompleted.connect(requestComplete);
 
-        mmal_buffer_header_release(buffer );
-    }
+	/*
+	 * --------------------------------------------------------------------
+	 * Start Capture
+	 *
+	 * In order to capture frames the Camera has to be started and
+	 * Request queued to it. Enough Request to fill the Camera pipeline
+	 * depth have to be queued before the Camera start delivering frames.
+	 *
+	 * For each delivered frame, the Slot connected to the
+	 * Camera::requestCompleted Signal is called.
+	 */
+	camera->start();
+	for (std::unique_ptr<Request> &request : requests)
+		camera->queueRequest(request.get());
 
-    if (port->is_enabled)
-    {
-        MMAL_STATUS_T status;
+	/*
+	 * --------------------------------------------------------------------
+	 * Run an EventLoop
+	 *
+	 * In order to dispatch events received from the video devices, such
+	 * as buffer completions, an event loop has to be run.
+	 */
+	loop.timeout(TIMEOUT_SEC);
+	int ret = loop.exec();
+	std::cout << "Capture ran for " << TIMEOUT_SEC << " seconds and "
+		  << "stopped with exit status: " << ret << std::endl;
 
-        new_buffer = mmal_queue_get(video_pool->queue);
+	/*
+	 * --------------------------------------------------------------------
+	 * Clean Up
+	 *
+	 * Stop the Camera, release resources and stop the CameraManager.
+	 * libcamera has now released all resources it owned.
+	 */
+	camera->stop();
+	allocator->free(stream);
+	delete allocator;
+	camera->release();
+	camera.reset();
+	cm->stop();
 
-        if (new_buffer)
-        {
-            status = mmal_port_send_buffer(port, new_buffer);
-        }
-        if (!new_buffer || status != MMAL_SUCCESS)
-        {
-            std::cerr << "Unable to return a buffer to the encoder port" << std::endl;
-        }
-    }
+	return EXIT_SUCCESS;
 }
