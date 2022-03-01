@@ -245,6 +245,41 @@ MMAL_PARAM_MIRROR_T getMirror()
         return MMAL_PARAM_MIRROR_NONE;
     }
 }
+MMAL_PARAM_FLICKERAVOID_T getFlickerAvoidMode()
+{
+    // Options: off, auto, 50hz, 60hz, max
+    try
+    {
+        std::string value = cfg.lookup("flickeravoid");
+        if (value == "auto")
+        {
+            return MMAL_PARAM_FLICKERAVOID_AUTO;
+        }
+        if (value == "50hz")
+        {
+            return MMAL_PARAM_FLICKERAVOID_50HZ;
+        }
+        if (value == "60hz")
+        {
+            return MMAL_PARAM_FLICKERAVOID_60HZ;
+        }
+        if (value == "max")
+        {
+            return MMAL_PARAM_FLICKERAVOID_MAX;
+        }
+        if (value == "off")
+        {
+            return MMAL_PARAM_FLICKERAVOID_OFF;
+        }
+        return MMAL_PARAM_FLICKERAVOID_OFF;
+    } catch (libconfig::SettingNotFoundException)
+    {
+        return MMAL_PARAM_FLICKERAVOID_OFF;
+    }
+
+
+
+}
 int _getIntVal(std::string parameter, int defaultValue)
 {
     try
@@ -483,6 +518,13 @@ int main(int argc, char* argv[])
     {
         std::cout << "Failed to set flip parameter." << std::endl;
     }
+
+   MMAL_PARAMETER_FLICKERAVOID_T flickeravoid = {{MMAL_PARAMETER_FLICKER_AVOID, sizeof(MMAL_PARAMETER_FLICKERAVOID_T)}, getFlickerAvoidMode()};
+   if (     mmal_port_parameter_set(camera->control, &flickeravoid.hdr) != MMAL_SUCCESS)
+    {
+        std::cout << "Failed to set flicker avoid parameter." << std::endl;
+    }
+    
 
     // Start Capture
     if (mmal_port_parameter_set_boolean(video_port, MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
