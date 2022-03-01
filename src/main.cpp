@@ -19,6 +19,8 @@
 
 #include <libconfig.h++>
 
+#include "fraction.cpp"
+
 #define VERSION "2.0.1"
 
 
@@ -127,6 +129,35 @@ MMAL_PARAM_AWBMODE_T getAwbMode()
     } catch (libconfig::SettingNotFoundException)
     {
         return MMAL_PARAM_AWBMODE_AUTO;
+    }
+}
+MMAL_PARAMETER_AWB_GAINS_T getAwbGains()
+{
+    try
+    {
+        float r_gain = cfg.lookup("r_gain");
+        float b_gain = cfg.lookup("b_gain");
+        fraction_t r_frac, b_frac;
+        r_frac = findFraction(r_gain);
+        b_frac = findFraction(b_gain);
+        MMAL_PARAMETER_AWB_GAINS_T awbGains;
+        awbGains.hdr.id = MMAL_PARAMETER_CUSTOM_AWB_GAINS;
+        awbGains.hdr.size = sizeof(awbGains);
+        awbGains.b_gain.num = b_frac.num;
+        awbGains.b_gain.den = b_frac.den;
+        awbGains.r_gain.num = r_frac.num;
+        awbGains.r_gain.den = r_frac.den;
+        return awbGains;
+    } catch (libconfig::SettingNotFoundException)
+    {
+        MMAL_PARAMETER_AWB_GAINS_T awbGains;
+        awbGains.hdr.id = MMAL_PARAMETER_CUSTOM_AWB_GAINS;
+        awbGains.hdr.size = sizeof(awbGains);
+        awbGains.b_gain.num = 1;
+        awbGains.b_gain.den = 1;
+        awbGains.r_gain.num = 1;
+        awbGains.r_gain.den = 1;
+        return awbGains;
     }
 }
 MMAL_PARAM_EXPOSUREMODE_T getExposureMode()
@@ -276,9 +307,6 @@ MMAL_PARAM_FLICKERAVOID_T getFlickerAvoidMode()
     {
         return MMAL_PARAM_FLICKERAVOID_OFF;
     }
-
-
-
 }
 int _getIntVal(std::string parameter, int defaultValue)
 {
@@ -476,6 +504,11 @@ int main(int argc, char* argv[])
     if(mmal_port_parameter_set(camera->control, &awbParam.hdr) != MMAL_SUCCESS)
     {
         std::cout << "Failed to set awb parameter." << std::endl;
+    }
+    MMAL_PARAMETER_AWB_GAINS_T awbGains =  getAwbGains();
+    if(mmal_port_parameter_set(camera->control, &awbGains.hdr) != MMAL_SUCCESS)
+    {
+        std::cout << "Failed to set awb gains." << std::endl;
     }
     if(mmal_port_parameter_set_rational(camera->control, MMAL_PARAMETER_SATURATION, (MMAL_RATIONAL_T){getSaturation(), 100}) != MMAL_SUCCESS)
     {

@@ -14,3 +14,5 @@ fps="25";
 # rotation: 0; // Options: 0, 90, 180, 270
 # mirror: "none"; // Options: none, horizontal, vertical, both
 # flickeravoid: "60hz"; // Options: auto, 50hz, 60hz, max, off
+# r_gain: 0; // value in range 0.0 - 8.0. Must be expressed as a float (x.y)
+# b_gain: 0; // value in range 0.0 - 8.0. Must be expressed as a float (x.y)
