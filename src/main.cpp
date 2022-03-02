@@ -25,31 +25,6 @@ static void default_signal_handler(int signal_number)
 	std::cerr << "Received signal " << signal_number << std::endl;
 }
 
-static int get_key_or_signal(VideoOptions const *options, pollfd p[1])
-{
-	int key = 0;
-	if (options->keypress)
-	{
-		poll(p, 1, 0);
-		if (p[0].revents & POLLIN)
-		{
-			char *user_string = nullptr;
-			size_t len;
-			[[maybe_unused]] size_t r = getline(&user_string, &len, stdin);
-			key = user_string[0];
-		}
-	}
-	if (options->signal)
-	{
-		if (signal_received == SIGUSR1)
-			key = '\n';
-		else if (signal_received == SIGUSR2)
-			key = 'x';
-		signal_received = 0;
-	}
-	return key;
-}
-
 static int get_colourspace_flags(std::string const &codec)
 {
 	if (codec == "mjpeg" || codec == "yuv420")
@@ -65,10 +40,10 @@ static void event_loop(LibcameraEncoder &app)
 	VideoOptions const *options = app.GetOptions();
 	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options));
 	app.SetEncodeOutputReadyCallback(std::bind(&Output::OutputReady, output.get(), _1, _2, _3, _4));
-	libcamera::StreamConfiguration const &cfg = app.VideoStream()->configuration();
+
 
 	app.OpenCamera();
-	app.ConfigureVideo(LibcameraEncoder::FLAG_VIDEO_RAW);
+	app.ConfigureVideo(LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE);
 	app.StartEncoder();
 	app.StartCamera();
 	auto start_time = std::chrono::high_resolution_clock::now();
@@ -78,6 +53,9 @@ static void event_loop(LibcameraEncoder &app)
 	signal(SIGUSR2, default_signal_handler);
 	pollfd p[1] = { { STDIN_FILENO, POLLIN, 0 } };
 
+	libcamera::StreamConfiguration const &cfg = app.VideoStream()->configuration();
+	std::cout << cfg.pixelFormat.fourcc() << std::endl;
+	std::cout << cfg.stride << std::endl;
 	for (unsigned int count = 0; ; count++)
 	{
 		LibcameraEncoder::Msg msg = app.Wait();
@@ -86,16 +64,8 @@ static void event_loop(LibcameraEncoder &app)
 		else if (msg.type != LibcameraEncoder::MsgType::RequestComplete)
 			throw std::runtime_error("unrecognised message!");
 
-		if (options->verbose)
-			std::cerr << "Viewfinder frame " << count << std::endl;
-		auto now = std::chrono::high_resolution_clock::now();
-		bool timeout = !options->frames && options->timeout &&
-					   (now - start_time > std::chrono::milliseconds(options->timeout));
-		bool frameout = options->frames && count >= options->frames;
-
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
-		app.ShowPreview(completed_request, app.VideoStream());
 	}
 }
 
@@ -107,10 +77,13 @@ int main(int argc, char *argv[])
 		VideoOptions *options = app.GetOptions();
 		options->Parse(0, nullptr);
 		options->codec = "YUV420";
-		options->width = 1280;
-		options->height = 720;
+		options->width = 1920;
+		options->height = 1080;
 		options->verbose = false;
 		options->nopreview = true;
+		options->denoise = "off";
+		options->framerate = 20;
+		options->Print();
 		event_loop(app);
 	}
 	catch (std::exception const &e)

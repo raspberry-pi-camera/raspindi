@@ -20,8 +20,8 @@ NdiOutput::NdiOutput(VideoOptions const *options)
     // std::cout << "Width: " << options->width << " x Height: " << options->height << std::endl;
     this->NDI_video_frame.xres = options->width;
     this->NDI_video_frame.yres = options->height;
-    this->NDI_video_frame.FourCC = NDIlib_FourCC_type_UYVY;
-    this->NDI_video_frame.line_stride_in_bytes = options->width * 2;
+    this->NDI_video_frame.FourCC = NDIlib_FourCC_type_I420;
+    this->NDI_video_frame.line_stride_in_bytes = options->width;
 }
 
 NdiOutput::~NdiOutput()
@@ -30,8 +30,6 @@ NdiOutput::~NdiOutput()
 
 void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint32_t flags)
 {
-    // std::cout << "Getting frame" << std::endl;
     this->NDI_video_frame.p_data = (uint8_t*)mem;
     NDIlib_send_send_video_v2(this->pNDI_send, &this->NDI_video_frame);
-    // std::cout << "Sent frame" << std::endl;
 }
