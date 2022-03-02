@@ -16,23 +16,6 @@
 
 using namespace std::placeholders;
 
-// Some keypress/signal handling.
-
-static int signal_received;
-static void default_signal_handler(int signal_number)
-{
-	signal_received = signal_number;
-	std::cerr << "Received signal " << signal_number << std::endl;
-}
-
-static int get_colourspace_flags(std::string const &codec)
-{
-	if (codec == "mjpeg" || codec == "yuv420")
-		return LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE;
-	else
-		return LibcameraEncoder::FLAG_VIDEO_NONE;
-}
-
 // The main even loop for the application.
 
 static void event_loop(LibcameraEncoder &app)
@@ -46,16 +29,6 @@ static void event_loop(LibcameraEncoder &app)
 	app.ConfigureVideo(LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE);
 	app.StartEncoder();
 	app.StartCamera();
-	auto start_time = std::chrono::high_resolution_clock::now();
-
-	// Monitoring for keypresses and signals.
-	signal(SIGUSR1, default_signal_handler);
-	signal(SIGUSR2, default_signal_handler);
-	pollfd p[1] = { { STDIN_FILENO, POLLIN, 0 } };
-
-	libcamera::StreamConfiguration const &cfg = app.VideoStream()->configuration();
-	std::cout << cfg.pixelFormat.fourcc() << std::endl;
-	std::cout << cfg.stride << std::endl;
 	for (unsigned int count = 0; ; count++)
 	{
 		LibcameraEncoder::Msg msg = app.Wait();
@@ -77,12 +50,12 @@ int main(int argc, char *argv[])
 		VideoOptions *options = app.GetOptions();
 		options->Parse(0, nullptr);
 		options->codec = "YUV420";
-		options->width = 1920;
-		options->height = 1080;
+		options->width = 1280;
+		options->height = 720;
 		options->verbose = false;
 		options->nopreview = true;
 		options->denoise = "off";
-		options->framerate = 20;
+		options->framerate = 25;
 		options->Print();
 		event_loop(app);
 	}
