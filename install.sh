@@ -10,7 +10,7 @@ mkdir "$BIN_DIR"
 
 cp lib/ndi/* "$LIB_DIR"
 
-cp build/raspindi "$BIN_DIR"
+cp build/src/raspindi "$BIN_DIR"
 
 cp etc/raspindi.conf.default /etc/raspindi.conf
 
