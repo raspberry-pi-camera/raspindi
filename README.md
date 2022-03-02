@@ -44,7 +44,8 @@ Install compilation dependencies.
 
 ```
 sudo apt update
-sudo apt install libconfig++-dev
+sudo apt install libconfig++-dev cmake libboost-program-options-dev libevent-dev libcamera-dev
+
 ```
 
 Compile.
@@ -63,7 +64,7 @@ Install runtime dependencies.
 
 ```
 sudo apt update
-sudo apt install libjasper-runtime libavahi-client3
+sudo apt install libavahi-client3 libevent-pthreads-2.1-7 libevent-core-2.1-7
 ```
 
 Run it. (It does not require root to run.)
@@ -81,6 +82,10 @@ works well.
 
 
 # Changelog
+
+## v3.0.0
+Changed to using libcamera rather than MMAL directly; MMAL will not be supported in Raspberry Pi OS after
+the current release
 
 ## v2.0.1
 Added config parameters for various camera settings (AWB, exposure etc.)
