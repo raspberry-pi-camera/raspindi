@@ -45,6 +45,7 @@ Install compilation dependencies.
 ```
 sudo apt update
 sudo apt install libconfig++-dev cmake libboost-program-options-dev libevent-dev libcamera-dev
+
 ```
 
 Compile.
