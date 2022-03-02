@@ -87,6 +87,9 @@ works well.
 Changed to using libcamera rather than MMAL directly; MMAL will not be supported in Raspberry Pi OS after
 the current release
 
+## v2.0.2
+Upgraded NDI library to v5.0.0
+
 ## v2.0.1
 Added config parameters for various camera settings (AWB, exposure etc.)
 
