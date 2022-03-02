@@ -44,7 +44,7 @@ Install compilation dependencies.
 
 ```
 sudo apt update
-sudo apt install libconfig++-dev cmake
+sudo apt install libconfig++-dev cmake libboost-program-options-dev libevent-dev libcamera-dev
 ```
 
 Compile.
@@ -63,7 +63,7 @@ Install runtime dependencies.
 
 ```
 sudo apt update
-sudo apt install libjasper-runtime libavahi-client3
+sudo apt install libavahi-client3 libevent-pthreads-2.1-7 libevent-core-2.1-7
 ```
 
 Run it. (It does not require root to run.)
