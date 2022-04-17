@@ -23,3 +23,4 @@ jobs:
         days-before-stale: 21
         days-before-pr-stale: -1
         close-issue-message: 'No update to this issue for 30 days. Closing'
+        exempt-assignees: rf152
