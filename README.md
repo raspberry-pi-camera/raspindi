@@ -14,8 +14,8 @@ running it on a Rapsberry Pi 4. **The Pi Zero W does not have enough memory to r
 this software**
 
 ## Latency Notes
-Latency with an Raspberry Pi 3B+ = ~1.4 seconds 
-Latency with Raspberry Pi 4 (4GB Model Tested) = ~200ms
+Raspberry Pi 3b+ = ~600ms   
+Raspberry Pi 4b (4GB Model Tested) = ~200ms
 
 ## Getting started
 
