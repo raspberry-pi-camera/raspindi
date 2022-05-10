@@ -13,6 +13,10 @@ This software is tested with Raspberry Pi 3B+ boards. Some users have had succes
 running it on a Rapsberry Pi 4. **The Pi Zero W does not have enough memory to run
 this software**
 
+## Latency Notes
+Raspberry Pi 3b+ = ~600ms   
+Raspberry Pi 4b (4GB Model Tested) = ~200ms
+
 ## Getting started
 
 These intructions are for a clean installation of
