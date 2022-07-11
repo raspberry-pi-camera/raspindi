@@ -7,6 +7,9 @@ in 2020.
 It uses the NDI library, allowing for auto-discovery of streams on the local
 network.
 
+**❗ This software does not work with USB cameras. It uses the native libary for
+the on-board camera port. ❗**
+
 ## Supported boards
 
 This software is tested with Raspberry Pi 3B+ boards. Some users have had success
