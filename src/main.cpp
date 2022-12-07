@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 		options->saturation = _getValue("saturation", 1);
 		options->sharpness = _getValue("sharpness", 1);
 		options->contrast = _getValue("contrast", 1);
-		options->brightness = ((_getValue("brigtness", 50) / 50) - 1);
+		options->brightness = ((_getValue("brightness", 50) / 50) - 1);
 		options->exposure = _getValue("exposuremode", "auto");
 		options->metering = _getValue("meteringmode", "average");
 		mirrored_rotation(options);
