@@ -8,7 +8,11 @@ mkdir "$INSTALL_DIR"
 mkdir "$LIB_DIR"
 mkdir "$BIN_DIR"
 
-cp lib/ndi/* "$LIB_DIR"
+if [ $(uname -m) == "aarch64" ]; then
+  cp lib64/ndi/* "$LIB_DIR"
+else
+  cp lib32/ndi/* "$LIB_DIR"
+fi
 
 cp build/src/raspindi "$BIN_DIR"
 cp build/src/libndioutput.so "$LIB_DIR"
