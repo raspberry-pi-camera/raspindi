@@ -1,0 +1,72 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+
+jobs:
+  build_job:
+    # The host should always be Linux
+    runs-on: ubuntu-latest
+    name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
+
+    
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            distro: bullseye
+          - arch: armv7
+            distro: bullseye
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2
+        name: Build
+        id: runcmd64
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt-get update -q -y
+            apt-get install -q -y gpg
+            gpg --keyserver keyserver.ubuntu.com --recv-keys cf8a1af502a2aa2d763bae7e82b129927fa3303e
+            gpg --armor --export cf8a1af502a2aa2d763bae7e82b129927fa3303e | apt-key add -
+
+            echo "deb http://archive.raspberrypi.org/debian/ bullseye main" > /etc/apt/sources.list.d/raspi.list
+            apt-get update -q -y
+            apt-get install -q -y --no-install-recommends cmake make gcc g++ libc6-dev libconfig++-dev libboost-program-options-dev libavahi-client3 cmake libcamera-dev libevent-pthreads-2.1-7 libevent-core-2.1-7 libevent-dev libcamera-dev libcamera0 libcamera-tools libcamera-apps-lite
+
+          run: |
+            ln -s lib-${{ matrix.arch }} lib
+            mkdir build-${{ matrix.arch }} && cd build-${{ matrix.arch }}
+            cmake ..
+            make
+            ls src/
+            mv src/raspindi raspindi-${{ matrix.arch }}
+            mv src/libndioutput.so libndioutput-${{ matrix.arch }}.so
+
+      - name: Package NDI
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.repository, 'raspberry-pi-camera/')
+        run: |
+          mkdir lib-${{ matrix.arch }}-release
+          cd lib-${{ matrix.arch }}-release
+          mkdir -p usr/lib
+          cp ../lib-${{ matrix.arch }}/ndi/* ./usr/lib/
+          tar -cvzf ../libndi-${{ matrix.arch }}.tar.gz usr/
+          echo ${{ github.event }}
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.repository, 'raspberry-pi-camera/')
+        with:
+          files: |
+            build-${{ matrix.arch }}/raspindi-${{ matrix.arch }}
+            build-${{ matrix.arch }}/libndioutput-${{ matrix.arch }}.so
+            libndi-${{ matrix.arch }}.tar.gz

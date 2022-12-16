@@ -8,10 +8,10 @@ mkdir "$INSTALL_DIR"
 mkdir "$LIB_DIR"
 mkdir "$BIN_DIR"
 
-if [ $(uname -m) == "aarch64" ]; then
-  cp lib64/ndi/* "$LIB_DIR"
+if [ -d "lib-$(uname -m)" ]; then
+  cp lib-$(uname -m)/ndi/* "$LIB_DIR"
 else
-  cp lib32/ndi/* "$LIB_DIR"
+  cp lib-armv7/ndi/* "$LIB_DIR"
 fi
 
 cp build/src/raspindi "$BIN_DIR"

@@ -4,10 +4,10 @@ if [ ! -d "build" ]; then
   mkdir build
 fi
 
-if [ $(uname -m) == "aarch64" ]; then
-  ln -s lib64 lib
+if [ -d "lib-$(uname -m)" ]; then
+  ln -s lib-$(uname -m) lib
 else
-  ln -s lib32 lib
+  ln -s lib-armv7 lib
 fi
 
 cd build
