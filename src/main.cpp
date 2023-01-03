@@ -11,6 +11,9 @@
 using namespace std::placeholders;
 bool exit_loop = false;
 libconfig::Config cfg;
+std::ofstream neopixel
+std::string neopixelpath;
+char pixelStatus;
 
 static void sigint_handler(int)
 {
@@ -149,6 +152,22 @@ static void event_loop(LibcameraEncoder &app)
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
+
+		if(output.isProgram())
+		{
+			pixelStatus = 'L';
+		}
+		else if (output.isPreview())
+		{
+			pixelStatus = 'P';
+		}
+		else
+		{
+			pixelStatus = 'N';
+		}
+		neopixel.open(neopixelpath);
+		neopixel << pixelStatus;
+		neopixel.close();
 	}
 }
 
@@ -179,6 +198,7 @@ int main(int argc, char *argv[])
 		options->metering = _getValue("meteringmode", "average");
 		mirrored_rotation(options);
 		options->Print();
+		neopixelpath = cfg.lookup("neopixel_path");
 		event_loop(app);
 	}
 	catch (std::exception const &e)
