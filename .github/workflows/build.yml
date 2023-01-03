@@ -62,15 +62,23 @@ jobs:
           tar -cvzf ../libndi-${{ matrix.arch }}.tar.gz usr/
           echo ${{ github.event }}
       
-      - name: Artifacts
+      - name: Artifacts - raspindi
         uses: actions/upload-artifact@v3
         with:
-          - name: raspindi-${{ matrix.arch }}
-            path: build-${{ matrix.arch }}/raspindi-${{ matrix.arch }}
-          - name: libndioutput-${{ matrix.arch }}.so
-            path: build-${{ matrix.arch }}/libndioutput-${{ matrix.arch }}.so
-          - name: libndi-${{ matrix.arch }}.tar.gz
-            path: libndi-${{ matrix.arch }}.tar.gz
+          name: raspindi-${{ matrix.arch }}
+          path: build-${{ matrix.arch }}/raspindi-${{ matrix.arch }}
+          
+      - name: Artifacts - libndioutput
+        uses: actions/upload-artifact@v3
+        with:
+          name: libndioutput-${{ matrix.arch }}.so
+          path: build-${{ matrix.arch }}/libndioutput-${{ matrix.arch }}.so
+          
+      - name: Artifacts - libndi
+        uses: actions/upload-artifact@v3
+        with:
+          name: libndi-${{ matrix.arch }}.tar.gz
+          path: libndi-${{ matrix.arch }}.tar.gz
 
       - name: Release
         uses: softprops/action-gh-release@v1
