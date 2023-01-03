@@ -51,13 +51,13 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
     else if (NDI_tally.on_preview)
     {
         neopixel.open(neopixelpath);
-        neopixel << "L";
+        neopixel << "P";
         neopixel.close();
     }
     else
     {
         neopixel.open(neopixelpath);
-        neopixel << "L";
+        neopixel << "N";
         neopixel.close();
     }
 }
