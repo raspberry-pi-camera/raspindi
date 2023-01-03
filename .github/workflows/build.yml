@@ -74,12 +74,6 @@ jobs:
           name: libndioutput-${{ matrix.arch }}.so
           path: build-${{ matrix.arch }}/libndioutput-${{ matrix.arch }}.so
           
-      - name: Artifacts - libndi
-        uses: actions/upload-artifact@v3
-        with:
-          name: libndi-${{ matrix.arch }}.tar.gz
-          path: libndi-${{ matrix.arch }}.tar.gz
-
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.repository, 'raspberry-pi-camera/')
