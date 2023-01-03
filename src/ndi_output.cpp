@@ -7,7 +7,7 @@
 
 #include "ndi_output.hpp"
 
-NdiOutput::NdiOutput(VideoOptions const *options)
+NdiOutput::NdiOutput(VideoOptions const *options, std::string neopixelPath)
 	: Output(options)
 {
     this->NDI_send_create_desc.p_ndi_name = "Video Feed";
@@ -22,6 +22,8 @@ NdiOutput::NdiOutput(VideoOptions const *options)
     this->NDI_video_frame.yres = options->height;
     this->NDI_video_frame.FourCC = NDIlib_FourCC_type_I420;
     this->NDI_video_frame.line_stride_in_bytes = options->width;
+
+    this->neopixelpath = neopixelPath;
 }
 
 NdiOutput::~NdiOutput()
@@ -36,6 +38,25 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
     NDIlib_send_get_tally(this->pNDI_send, &NDI_tally, 0);
     this->program = NDI_tally.on_program;
     this->preview = NDI_tally.on_preview;
+
+    char pixelStatus;
+    std::ofstream neopixel;
+
+    if(this->isProgram())
+    {
+        pixelStatus = 'L';
+    }
+    else if (this->isPreview())
+    {
+        pixelStatus = 'P';
+    }
+    else
+    {
+        pixelStatus = 'N';
+    }
+    neopixel.open(neopixelpath);
+    neopixel << pixelStatus;
+    neopixel.close();
 }
 
 
