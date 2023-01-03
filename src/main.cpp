@@ -11,7 +11,7 @@
 using namespace std::placeholders;
 bool exit_loop = false;
 libconfig::Config cfg;
-std::ofstream neopixel
+std::ofstream neopixel;
 std::string neopixelpath;
 char pixelStatus;
 
@@ -153,11 +153,11 @@ static void event_loop(LibcameraEncoder &app)
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
 
-		if(output.isProgram())
+		if(output.get().isProgram())
 		{
 			pixelStatus = 'L';
 		}
-		else if (output.isPreview())
+		else if (output.get().isPreview())
 		{
 			pixelStatus = 'P';
 		}
