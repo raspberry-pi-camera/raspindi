@@ -42,7 +42,7 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
     char pixelStatus;
     std::ofstream neopixel;
 
-    std::cout << "PGM: " << NDI_tally.on_program << " PVW: " << NDI_tally.on_preview << std::endl
+    std::cout << "PGM: " << NDI_tally.on_program << " PVW: " << NDI_tally.on_preview << std::endl;
 
     if(NDI_tally.on_program)
     {
