@@ -153,11 +153,11 @@ static void event_loop(LibcameraEncoder &app)
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
 
-		if(output.get().isProgram())
+		if(output.get()->isProgram())
 		{
 			pixelStatus = 'L';
 		}
-		else if (output.get().isPreview())
+		else if (output.get()->isPreview())
 		{
 			pixelStatus = 'P';
 		}
