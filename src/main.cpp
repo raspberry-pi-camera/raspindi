@@ -11,9 +11,6 @@
 using namespace std::placeholders;
 bool exit_loop = false;
 libconfig::Config cfg;
-std::ofstream neopixel;
-std::string neopixelpath;
-char pixelStatus;
 
 static void sigint_handler(int)
 {
@@ -134,7 +131,7 @@ void mirrored_rotation(VideoOptions *options)
 static void event_loop(LibcameraEncoder &app)
 {
 	VideoOptions const *options = app.GetOptions();
-	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options));
+	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options, _getValue("neopixel_path", "/tmp/neopixel.state")));
 	app.SetEncodeOutputReadyCallback(std::bind(&Output::OutputReady, output.get(), _1, _2, _3, _4));
 
 
@@ -152,22 +149,6 @@ static void event_loop(LibcameraEncoder &app)
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
-
-		if(output.get().isProgram())
-		{
-			pixelStatus = 'L';
-		}
-		else if (output.get().isPreview())
-		{
-			pixelStatus = 'P';
-		}
-		else
-		{
-			pixelStatus = 'N';
-		}
-		neopixel.open(neopixelpath);
-		neopixel << pixelStatus;
-		neopixel.close();
 	}
 }
 
@@ -198,7 +179,6 @@ int main(int argc, char *argv[])
 		options->metering = _getValue("meteringmode", "average");
 		mirrored_rotation(options);
 		options->Print();
-		neopixelpath = cfg.lookup("neopixel_path");
 		event_loop(app);
 	}
 	catch (std::exception const &e)

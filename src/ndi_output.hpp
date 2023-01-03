@@ -13,7 +13,7 @@
 class NdiOutput : public Output
 {
 public:
-	NdiOutput(VideoOptions const *options);
+	NdiOutput(VideoOptions const *options, std::string neopixelPath);
 	~NdiOutput();
 
     bool isProgram();
@@ -29,4 +29,5 @@ private:
     NDIlib_video_frame_v2_t NDI_video_frame;
     bool preview;
     bool program;
+    std::string neopixelpath;
 };
