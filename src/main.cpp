@@ -153,11 +153,11 @@ static void event_loop(LibcameraEncoder &app)
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
 		app.EncodeBuffer(completed_request, app.VideoStream());
 
-		if(output.get()->isProgram())
+		if((NdiOutput*)output.get()->isProgram())
 		{
 			pixelStatus = 'L';
 		}
-		else if (output.get()->isPreview())
+		else if ((NdiOutput*)output.get()->isPreview())
 		{
 			pixelStatus = 'P';
 		}
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 		options->metering = _getValue("meteringmode", "average");
 		mirrored_rotation(options);
 		options->Print();
-		neopixelpath = cfg.lookup("neopixel_path");
+		neopixelpath = _getValue("neopixel_path", "/tmp/neopixel.state");
 		event_loop(app);
 	}
 	catch (std::exception const &e)
