@@ -131,7 +131,7 @@ void mirrored_rotation(VideoOptions *options)
 static void event_loop(LibcameraEncoder &app)
 {
 	VideoOptions const *options = app.GetOptions();
-	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options), _getValue("neopixel_path", "/tmp/neopixel.state"););
+	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options, _getValue("neopixel_path", "/tmp/neopixel.state")));
 	app.SetEncodeOutputReadyCallback(std::bind(&Output::OutputReady, output.get(), _1, _2, _3, _4));
 
 
