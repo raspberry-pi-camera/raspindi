@@ -42,21 +42,24 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
     char pixelStatus;
     std::ofstream neopixel;
 
-    if(this->isProgram())
+    if(NDI_tally.on_program)
     {
-        pixelStatus = 'L';
+        neopixel.open(neopixelpath);
+        neopixel << "L";
+        neopixel.close();
     }
-    else if (this->isPreview())
+    else if (NDI_tally.on_preview)
     {
-        pixelStatus = 'P';
+        neopixel.open(neopixelpath);
+        neopixel << "L";
+        neopixel.close();
     }
     else
     {
-        pixelStatus = 'N';
+        neopixel.open(neopixelpath);
+        neopixel << "L";
+        neopixel.close();
     }
-    neopixel.open(neopixelpath);
-    neopixel << pixelStatus;
-    neopixel.close();
 }
 
 
