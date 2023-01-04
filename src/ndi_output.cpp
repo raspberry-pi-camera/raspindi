@@ -34,29 +34,32 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
 {
     this->NDI_video_frame.p_data = (uint8_t*)mem;
     NDIlib_send_send_video_v2(this->pNDI_send, &this->NDI_video_frame);
-    NDIlib_tally_t NDI_tally;
-    NDIlib_send_get_tally(this->pNDI_send, &NDI_tally, 0);
-    this->program = NDI_tally.on_program;
-    this->preview = NDI_tally.on_preview;
+    NDIlib_tally_t* NDI_tally;
+    NDIlib_send_get_tally(this->pNDI_send, NDI_tally, 0);
 
     char pixelStatus;
     std::ofstream neopixel;
 
-    if(this->isProgram())
+    std::cout << "PGM: " << NDI_tally->on_program << " PVW: " << NDI_tally->on_preview << std::endl;
+
+    if(NDI_tally->on_program)
     {
-        pixelStatus = 'L';
+        neopixel.open(neopixelpath);
+        neopixel << "L";
+        neopixel.close();
     }
-    else if (this->isPreview())
+    else if (NDI_tally->on_preview)
     {
-        pixelStatus = 'P';
+        neopixel.open(neopixelpath);
+        neopixel << "P";
+        neopixel.close();
     }
     else
     {
-        pixelStatus = 'N';
+        neopixel.open(neopixelpath);
+        neopixel << "N";
+        neopixel.close();
     }
-    neopixel.open(neopixelpath);
-    neopixel << pixelStatus;
-    neopixel.close();
 }
 
 
