@@ -37,8 +37,6 @@ void NdiOutput::outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint3
 
     NDIlib_tally_t* NDI_tally;
     NDIlib_send_get_tally(this->pNDI_send, NDI_tally, 0);
-    this->program = NDI_tally.on_program;
-    this->preview = NDI_tally.on_preview;
 
     char pixelStatus;
     std::ofstream neopixel;
