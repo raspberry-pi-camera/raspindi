@@ -102,6 +102,9 @@ works well.
 
 # Changelog
 
+## v3.0.2
+Moved to using ndi 5.
+
 ## v3.0.0
 Changed to using libcamera rather than MMAL directly; MMAL will not be supported in Raspberry Pi OS after
 the current release
