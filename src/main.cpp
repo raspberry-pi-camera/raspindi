@@ -159,7 +159,6 @@ int main(int argc, char *argv[])
 		LibcameraEncoder app;
 		VideoOptions *options = app.GetOptions();
 		loadConfig();
-		options->Parse(argc, argv);
 		options->codec = "YUV420";
 		options->verbose = false;
 		options->nopreview = true;
