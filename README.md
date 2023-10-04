@@ -20,7 +20,19 @@ this software**
 Raspberry Pi 3b+ = ~600ms   
 Raspberry Pi 4b (4GB Model Tested) = ~200ms
 
-## Getting started
+## Getting started - pre-compiled
+
+Against the latest relase there are three files you need:
+
+- raspindi-${arch}
+- libndioutput-${arch}.so
+- libndi-${arch}.tar.gz
+
+You will need to download the config file: `wget -o /etc/raspindi.conf https://raw.githubusercontent.com/raspberry-pi-camera/raspindi/main/etc/raspindi.conf.default`
+
+Put the two sets of libraries in /usr/lib, and the raspindi binary somewhere in your PATH (eg /usr/local/bin), and run it
+
+## Getting started - compile your own
 
 These intructions are for a clean installation of
 [Raspberry Pi OS](https://www.raspberrypi.org/software/).
@@ -89,6 +101,9 @@ works well.
 
 
 # Changelog
+
+## v3.0.2
+Moved to using ndi 5.
 
 ## v3.0.0
 Changed to using libcamera rather than MMAL directly; MMAL will not be supported in Raspberry Pi OS after
