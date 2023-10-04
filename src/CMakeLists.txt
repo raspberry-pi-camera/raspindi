@@ -16,8 +16,8 @@ target_link_libraries(raspindi PRIVATE
 #     ndi 
 #     dl 
     config++
-    encoders
-    outputs
+#    encoders
+#    outputs
     ndioutput
     camera_app
     boost_program_options
