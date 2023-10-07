@@ -102,8 +102,11 @@ works well.
 
 # Changelog
 
-## v3.0.3
+## v3.0.4
 Updated libcamera code to fit with libcamera changes.
+
+## v3.0.3
+Fixed NeoPixel code.
 
 ## v3.0.2
 Moved to using ndi 5.
