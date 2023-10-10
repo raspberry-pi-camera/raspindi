@@ -1,8 +1,8 @@
 neopixel_path = "/tmp/neopixel.state";
 camera_number = "-1";
-height=720;
-width=1280;
-fps=25;
+height=1080;
+width=1920;
+fps=30;
 
 # awb: "auto"; // Options: auto, normal, incadescent, tungsten, fluorescent, indoor, daylight, cloudy, custom
 # r_gain: 0; // red gain (for custom awb)

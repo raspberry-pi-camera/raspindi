@@ -1,0 +1,9 @@
+[Unit]
+Description=Start the camera over NDI
+
+[Service]
+Type=simple
+ExecStart=/opt/RasPi-NDI-HDMI/RasPi-NDI-HDMI.sh &
+
+[Install]
+WantedBy=multi-user.target
