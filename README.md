@@ -14,27 +14,15 @@ This software is tested with Raspberry Pi 3B+ boards. Some users have had succes
 Raspberry Pi 3b+ = ~600ms   
 Raspberry Pi 4b (4GB Model Tested) = ~200ms
 
-## Getting started - pre-compiled
-
-Against the latest relase there are three files you need:
-
-- raspindi-${arch}
-- libndioutput-${arch}.so
-- libndi-${arch}.tar.gz
-
-You will need to download the config file: `wget -o /etc/raspindi.conf https://raw.githubusercontent.com/raspberry-pi-camera/raspindi/main/etc/raspindi.conf.default`
-
-Put the two sets of libraries in /usr/lib, and the raspindi binary somewhere in your PATH (eg /usr/local/bin), and run it
-
 ## Getting started - compile your own
 
 These intructions are for a clean installation of [Raspberry Pi OS](https://www.raspberrypi.org/software/). All steps are performed on the command line.
 
 ### tl;dr
 
-- `git clone https://github.com/raspberry-pi-camera/raspindi.git && cd raspindi`
+- `git clone https://github.com/SBCV-apegram/RasPi-NDI-HDMI.git && cd RasPi-NDI-HDMI`
 - `./easy-setup.sh`
-- `/opt/raspindi/raspindi.sh`
+- `/opt/RasPi-NDI-HDMI/RasPi-NDI-HDMI.sh`
 
 ### Step by step
 
@@ -48,7 +36,7 @@ sudo apt install git
 Clone this repository and `cd` into it.
 
 ```
-git clone https://github.com/raspberry-pi-camera/raspindi.git && cd raspindi
+git clone https://github.com/SBCV-apegram/RasPi-NDI-HDMI.git && cd RasPi-NDI-HDMI
 ```
 
 Install compilation dependencies.
@@ -81,7 +69,7 @@ sudo apt install libavahi-client3 libevent-pthreads-2.1-7 libevent-core-2.1-7
 Run it. (It does not require root to run.)
 
 ```
-/opt/raspindi/raspindi.sh
+/opt/RasPi-NDI-HDMI/RasPi-NDI-HDMI.sh
 ```
 
 Open an NDI receiver somewhere on the same network. It should detect the Raspberry Pi camera after a few seconds.
