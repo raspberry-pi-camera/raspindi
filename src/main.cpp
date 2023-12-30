@@ -4,7 +4,7 @@
 #include <sys/signalfd.h>
 #include <sys/stat.h>
 
-#include "core/libcamera_encoder.hpp"
+#include "core/rpicam_encoder.hpp"
 #include "ndi_output.hpp"
 #include <libconfig.h++>
 
