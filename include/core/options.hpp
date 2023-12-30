@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -26,20 +27,75 @@ static constexpr double DEFAULT_FRAMERATE = 30.0;
 
 struct Mode
 {
-	Mode() : Mode(0, 0, 0, false) {}
-	Mode(unsigned int w, unsigned int h, unsigned int b, bool p) : width(w), height(h), bit_depth(b), packed(p) {}
+	Mode() : Mode(0, 0, 0, true) {}
+	Mode(unsigned int w, unsigned int h, unsigned int b, bool p) : width(w), height(h), bit_depth(b), packed(p), framerate(0) {}
 	Mode(std::string const &mode_string);
 	unsigned int width;
 	unsigned int height;
 	unsigned int bit_depth;
 	bool packed;
+	double framerate;
 	libcamera::Size Size() const { return libcamera::Size(width, height); }
 	std::string ToString() const;
+	void update(const libcamera::Size &size, const std::optional<float> &fps);
+};
+
+template <typename DEFAULT>
+struct TimeVal
+{
+	TimeVal() : value(0) {}
+
+	void set(const std::string &s)
+	{
+		static const std::map<std::string, std::chrono::nanoseconds> match
+		{
+			{ "min", std::chrono::minutes(1) },
+			{ "sec", std::chrono::seconds(1) },
+			{ "s", std::chrono::seconds(1) },
+			{ "ms", std::chrono::milliseconds(1) },
+			{ "us", std::chrono::microseconds(1) },
+			{ "ns", std::chrono::nanoseconds(1) },
+		};
+
+		try
+		{
+			std::size_t end_pos;
+			float f = std::stof(s, &end_pos);
+			value = std::chrono::duration_cast<std::chrono::nanoseconds>(f * DEFAULT { 1 });
+
+			for (const auto &m : match)
+			{
+				auto found = s.find(m.first, end_pos);
+				if (found != end_pos || found + m.first.length() != s.length())
+					continue;
+				value = std::chrono::duration_cast<std::chrono::nanoseconds>(f * m.second);
+				break;
+			}
+		}
+		catch (std::exception const &e)
+		{
+			throw std::runtime_error("Invalid time string provided");
+		}
+	}
+
+	template <typename C = DEFAULT>
+	int64_t get() const
+	{
+		return std::chrono::duration_cast<C>(value).count();
+	}
+
+	explicit constexpr operator bool() const
+	{
+		return !!value.count();
+	}
+
+	std::chrono::nanoseconds value;
 };
 
 struct Options
 {
-	Options() : set_default_lens_position(false), af_on_capture(false), options_("Valid options are", 120, 80)
+	Options()
+		: set_default_lens_position(false), af_on_capture(false), options_("Valid options are", 120, 80), app_(nullptr)
 	{
 		using namespace boost::program_options;
 		// clang-format off
@@ -68,14 +124,12 @@ struct Options
 			 "Set the output image width (0 = use default value)")
 			("height", value<unsigned int>(&height)->default_value(0),
 			 "Set the output image height (0 = use default value)")
-			("timeout,t", value<uint64_t>(&timeout)->default_value(5000),
-			 "Time (in ms) for which program runs")
+			("timeout,t", value<std::string>(&timeout_)->default_value("5sec"),
+			 "Time for which program runs. If no units are provided default to ms.")
 			("output,o", value<std::string>(&output),
 			 "Set the output file name")
 			("post-process-file", value<std::string>(&post_process_file),
 			 "Set the file name for configuring the post-processing")
-			("rawfull", value<bool>(&rawfull)->default_value(false)->implicit_value(true),
-			 "Force use of full resolution raw frames")
 			("nopreview,n", value<bool>(&nopreview)->default_value(false)->implicit_value(true),
 			 "Do not show a preview window")
 			("preview,p", value<std::string>(&preview)->default_value("0,0,0,0"),
@@ -88,8 +142,8 @@ struct Options
 			("vflip", value<bool>(&vflip_)->default_value(false)->implicit_value(true), "Request a vertical flip transform")
 			("rotation", value<int>(&rotation_)->default_value(0), "Request an image rotation, 0 or 180")
 			("roi", value<std::string>(&roi)->default_value("0,0,0,0"), "Set region of interest (digital zoom) e.g. 0.25,0.25,0.5,0.5")
-			("shutter", value<float>(&shutter)->default_value(0),
-			 "Set a fixed shutter speed in microseconds")
+			("shutter", value<std::string>(&shutter_)->default_value("0"),
+			 "Set a fixed shutter speed. If no units are provided default to us")
 			("analoggain", value<float>(&gain)->default_value(0),
 			 "Set a fixed gain value (synonym for 'gain' option)")
 			("gain", value<float>(&gain),
@@ -136,6 +190,8 @@ struct Options
 			 "Camera mode for preview as W:H:bit-depth:packing, where packing is P (packed) or U (unpacked)")
 			("buffer-count", value<unsigned int>(&buffer_count)->default_value(0), "Number of in-flight requests (and buffers) configured for video, raw, and still.")
 			("viewfinder-buffer-count", value<unsigned int>(&viewfinder_buffer_count)->default_value(0), "Number of in-flight requests (and buffers) configured for preview window.")
+			("no-raw", value<bool>(&no_raw)->default_value(false)->implicit_value(true),
+			 "Disable requesting of a RAW stream. Will override any manual mode reqest the mode choice when setting framerate.")
 			("autofocus-mode", value<std::string>(&afMode)->default_value("default"),
 			 "Control to set the mode of the AF (autofocus) algorithm.(manual, auto, continuous)")
 			("autofocus-range", value<std::string>(&afRange)->default_value("normal"),
@@ -146,12 +202,18 @@ struct Options
 			"Sets AfMetering to  AfMeteringWindows an set region used, e.g. 0.25,0.25,0.5,0.5")
 			("lens-position", value<std::string>(&lens_position_)->default_value(""),
 			 "Set the lens to a particular focus position, expressed as a reciprocal distance (0 moves the lens to infinity), or \"default\" for the hyperfocal distance")
-			("hdr", value<bool>(&hdr)->default_value(false)->implicit_value(true),
-			 "Enable (1) or disable (0) High Dynamic Range, where supported")
+			("hdr", value<std::string>(&hdr)->default_value("off")->implicit_value("auto"),
+			 "Enable High Dynamic Range, where supported. Available values are \"off\", \"auto\", "
+			 "\"sensor\" for sensor HDR (e.g. for Camera Module 3), "
+			 "\"single-exp\" for PiSP based single exposure multiframe HDR")
 			("metadata", value<std::string>(&metadata),
 			 "Save captured image metadata to a file or \"-\" for stdout")
 			("metadata-format", value<std::string>(&metadata_format)->default_value("json"),
 			 "Format to save the metadata in, either txt or json (requires --metadata)")
+			("flicker-period", value<std::string>(&flicker_period_)->default_value("0s"),
+			 "Manual flicker correction period"
+			 "\nSet to 10000us to cancel 50Hz flicker."
+			 "\nSet to 8333us to cancel 60Hz flicker.\n")
 			;
 		// clang-format on
 	}
@@ -162,13 +224,12 @@ struct Options
 	bool version;
 	bool list_cameras;
 	unsigned int verbose;
-	uint64_t timeout; // in ms
+	TimeVal<std::chrono::milliseconds> timeout;
 	std::string config_file;
 	std::string output;
 	std::string post_process_file;
 	unsigned int width;
 	unsigned int height;
-	bool rawfull;
 	bool nopreview;
 	std::string preview;
 	bool fullscreen;
@@ -176,7 +237,7 @@ struct Options
 	libcamera::Transform transform;
 	std::string roi;
 	float roi_x, roi_y, roi_width, roi_height;
-	float shutter;
+	TimeVal<std::chrono::microseconds> shutter;
 	float gain;
 	std::string metering;
 	int metering_index;
@@ -223,10 +284,14 @@ struct Options
 	bool af_on_capture;
 	std::string metadata;
 	std::string metadata_format;
-	bool hdr;
+	std::string hdr;
+	TimeVal<std::chrono::microseconds> flicker_period;
+	bool no_raw;
 
 	virtual bool Parse(int argc, char *argv[]);
 	virtual void Print() const;
+
+	void SetApp(RPiCamApp *app) { app_ = app; }
 
 protected:
 	boost::program_options::options_description options_;
@@ -237,4 +302,8 @@ private:
 	int rotation_;
 	float framerate_;
 	std::string lens_position_;
+	std::string timeout_;
+	std::string shutter_;
+	std::string flicker_period_;
+	RPiCamApp *app_;
 };
