@@ -1,4 +1,4 @@
-v/* SPDX-License-Identifier: BSD-2-Clause */
+/* SPDX-License-Identifier: BSD-2-Clause */
 /*
  * Copyright (C) 2021, Raspberry Pi (Trading) Ltd.
  *
