@@ -128,7 +128,7 @@ void mirrored_rotation(VideoOptions *options)
 	options->transform = transform;
 }
 
-static void event_loop(LibcameraEncoder &app)
+static void event_loop(RPiCamEncoder &app)
 {
 	VideoOptions const *options = app.GetOptions();
 	std::unique_ptr<Output> output = std::unique_ptr<Output>(new NdiOutput(options, _getValue("neopixel_path", "/tmp/neopixel.state")));
@@ -136,15 +136,15 @@ static void event_loop(LibcameraEncoder &app)
 
 
 	app.OpenCamera();
-	app.ConfigureVideo(LibcameraEncoder::FLAG_VIDEO_JPEG_COLOURSPACE);
+	app.ConfigureVideo(RPiCamEncoder::FLAG_VIDEO_JPEG_COLOURSPACE);
 	app.StartEncoder();
 	app.StartCamera();
 	while (!exit_loop)
 	{
-		LibcameraEncoder::Msg msg = app.Wait();
-		if (msg.type == LibcameraEncoder::MsgType::Quit)
+		RPiCamEncoder::Msg msg = app.Wait();
+		if (msg.type == RPiCamEncoder::MsgType::Quit)
 			return;
-		else if (msg.type != LibcameraEncoder::MsgType::RequestComplete)
+		else if (msg.type != RPiCamEncoder::MsgType::RequestComplete)
 			throw std::runtime_error("unrecognised message!");
 
 		CompletedRequestPtr &completed_request = std::get<CompletedRequestPtr>(msg.payload);
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		LibcameraEncoder app;
+		RPiCamEncoder app;
 		VideoOptions *options = app.GetOptions();
 		loadConfig();
 		options->codec = "YUV420";
