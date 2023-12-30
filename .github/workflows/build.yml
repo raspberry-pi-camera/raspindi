@@ -16,9 +16,9 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            distro: bullseye
+            distro: bookworm
           - arch: armv7
-            distro: bullseye
+            distro: bookworm
     steps:
       - uses: actions/checkout@v3
 
