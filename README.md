@@ -1,5 +1,9 @@
 # RaspiNDI
 
+**❗ This branch is for Raspberry Pi OS Bookworm! ❗**
+
+A core library has changed names in the latest builds of Raspberry Pi OS Bookworm that necessitates maintaining two separate branches, unless the library is backported to Bullseye. For those who have updated to Bullseye, please use the 'bullseye' branch.
+
 RasPi-NDI-HDMI is a fork from the [raspindi](https://github.com/raspberry-pi-camera/raspindi). It includes auto start services for NDI and HDMI output, controlled by a momentary push button on GPIO pin 21. 
 
 It uses the NDI library, allowing for auto-discovery of streams on the local network.
