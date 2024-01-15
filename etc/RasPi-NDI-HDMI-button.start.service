@@ -1,0 +1,9 @@
+[Unit]
+Description=Start the RasPi-NDI-HDMI control button service
+
+[Service]
+Type=simple
+ExecStart=/opt/RasPi-NDI-HDMI/control-button.py &
+
+[Install]
+WantedBy=multi-user.target
