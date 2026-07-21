@@ -14,32 +14,31 @@
 
 struct event_base;
 
-class EventLoop
-{
-public:
-	EventLoop();
-	~EventLoop();
+class EventLoop {
+ public:
+  EventLoop();
+  ~EventLoop();
 
-	void exit(int code = 0);
-	int exec();
+  void exit(int code = 0);
+  int exec();
 
-	void timeout(unsigned int sec);
-	void callLater(const std::function<void()> &func);
+  void timeout(unsigned int sec);
+  void callLater(const std::function<void()>& func);
 
-private:
-	static EventLoop *instance_;
+ private:
+  static EventLoop* instance_;
 
-	static void timeoutTriggered(int fd, short event, void *arg);
+  static void timeoutTriggered(int fd, short event, void* arg);
 
-	struct event_base *event_;
-	std::atomic<bool> exit_;
-	int exitCode_;
+  struct event_base* event_;
+  std::atomic<bool> exit_;
+  int exitCode_;
 
-	std::list<std::function<void()>> calls_;
-	std::mutex lock_;
+  std::list<std::function<void()>> calls_;
+  std::mutex lock_;
 
-	void interrupt();
-	void dispatchCalls();
+  void interrupt();
+  void dispatchCalls();
 };
 
 #endif /* __SIMPLE_CAM_EVENT_LOOP_H__ */

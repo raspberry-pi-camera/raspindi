@@ -2,13 +2,13 @@
 
 // NOTE : The following MIT license applies to this file ONLY and not to the SDK as a whole. Please review
 // the SDK documentation for the description of the full license terms, which are also provided in the file
-// "NDI License Agreement.pdf" within the SDK or online at http://new.tk/ndisdk_license/. Your use of any
+// "NDI License Agreement.pdf" within the SDK or online at http://ndi.link/ndisdk_license. Your use of any
 // part of this SDK is acknowledgment that you agree to the SDK license terms. The full NDI SDK may be
-// downloaded at http://ndi.tv/
+// downloaded at http://ndi.video/
 //
 //***********************************************************************************************************
 //
-// Copyright (C)2014-2022, NewTek, inc.
+// Copyright (C) 2023-2026 Vizrt NDI AB. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated documentation files(the "Software"), to deal in the Software without restriction, including
@@ -49,22 +49,22 @@
 #			endif // __cplusplus
 #			ifdef _WIN64
 #				define NDILIB_LIBRARY_NAME  "Processing.NDI.Lib.x64.dll"
-#				define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V5"
-#				define NDILIB_REDIST_URL    "http://new.tk/NDIRedistV5"
+#				define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V6"
+#				define NDILIB_REDIST_URL    "http://ndi.link/NDIRedistV6"
 #			else // _WIN64
 #				define NDILIB_LIBRARY_NAME  "Processing.NDI.Lib.x86.dll"
-#				define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V5"
-#				define NDILIB_REDIST_URL    "http://new.tk/NDIRedistV5"
+#				define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V6"
+#				define NDILIB_REDIST_URL    "http://ndi.link/NDIRedistV6"
 #			endif // _WIN64
 #		endif // PROCESSINGNDILIB_EXPORTS
 #	else // _WIN32
 #		ifdef __APPLE__
 #			define NDILIB_LIBRARY_NAME  "libndi.dylib"
-#			define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V5"
-#			define NDILIB_REDIST_URL    "http://new.tk/NDIRedistV5Apple"
+#			define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V6"
+#			define NDILIB_REDIST_URL    "http://ndi.link/NDIRedistV6Apple"
 #		else // __APPLE__
-#			define NDILIB_LIBRARY_NAME  "libndi.so.5"
-#			define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V5"
+#			define NDILIB_LIBRARY_NAME  "libndi.so.6"
+#			define NDILIB_REDIST_FOLDER "NDI_RUNTIME_DIR_V6"
 #			define NDILIB_REDIST_URL    ""
 #		endif // __APPLE__
 #		ifdef __cplusplus
@@ -135,8 +135,20 @@ bool NDIlib_is_supported_CPU(void);
 // Extensions to support PTZ control, etc...
 #include "Processing.NDI.Recv.ex.h"
 
+// The receiver advertiser API.
+#include "Processing.NDI.RecvAdvertiser.h"
+
+// The receiver listener API.
+#include "Processing.NDI.RecvListener.h"
+
 // The sending video API.
 #include "Processing.NDI.Send.h"
+
+// The sender advertiser API.
+#include "Processing.NDI.SendAdvertiser.h"
+
+// The sender listener API.
+#include "Processing.NDI.SendListener.h"
 
 // The routing of inputs API.
 #include "Processing.NDI.Routing.h"

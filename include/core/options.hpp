@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -26,149 +27,186 @@ static constexpr double DEFAULT_FRAMERATE = 30.0;
 
 struct Mode
 {
-	Mode() : Mode(0, 0, 0, false) {}
-	Mode(unsigned int w, unsigned int h, unsigned int b, bool p) : width(w), height(h), bit_depth(b), packed(p) {}
+	Mode() : Mode(0, 0, 0, true)
+	{
+	}
+	Mode(unsigned int w, unsigned int h, unsigned int b, bool p)
+		: width(w), height(h), bit_depth(b), packed(p), framerate(0)
+	{
+	}
 	Mode(std::string const &mode_string);
 	unsigned int width;
 	unsigned int height;
 	unsigned int bit_depth;
 	bool packed;
-	libcamera::Size Size() const { return libcamera::Size(width, height); }
+	double framerate;
+	libcamera::Size Size() const
+	{
+		return libcamera::Size(width, height);
+	}
 	std::string ToString() const;
+	void update(const libcamera::Size &size, const std::optional<float> &fps);
 };
 
-struct Options
+template <typename DEFAULT>
+struct TimeVal
 {
-	Options() : set_default_lens_position(false), af_on_capture(false), options_("Valid options are", 120, 80)
+	TimeVal() : value(0)
 	{
-		using namespace boost::program_options;
-		// clang-format off
-		options_.add_options()
-			("help,h", value<bool>(&help)->default_value(false)->implicit_value(true),
-			 "Print this help message")
-			("version", value<bool>(&version)->default_value(false)->implicit_value(true),
-			 "Displays the build version number")
-			("list-cameras", value<bool>(&list_cameras)->default_value(false)->implicit_value(true),
-			 "Lists the available cameras attached to the system.")
-			("camera", value<unsigned int>(&camera)->default_value(0),
-			 "Chooses the camera to use. To list the available indexes, use the --list-cameras option.")
-			("verbose,v", value<unsigned int>(&verbose)->default_value(1)->implicit_value(2),
-			 "Set verbosity level. Level 0 is no output, 1 is default, 2 is verbose.")
-			("config,c", value<std::string>(&config_file)->implicit_value("config.txt"),
-			 "Read the options from a file. If no filename is specified, default to config.txt. "
-			 "In case of duplicate options, the ones provided on the command line will be used. "
-			 "Note that the config file must only contain the long form options.")
-			("info-text", value<std::string>(&info_text)->default_value("#%frame (%fps fps) exp %exp ag %ag dg %dg"),
-			 "Sets the information string on the titlebar. Available values:\n"
-			 "%frame (frame number)\n%fps (framerate)\n%exp (shutter speed)\n%ag (analogue gain)"
-			 "\n%dg (digital gain)\n%rg (red colour gain)\n%bg (blue colour gain)"
-			 "\n%focus (focus FoM value)\n%aelock (AE locked status)"
-			 "\n%lp (lens position, if known)\n%afstate (AF state, if supported)")
-			("width", value<unsigned int>(&width)->default_value(0),
-			 "Set the output image width (0 = use default value)")
-			("height", value<unsigned int>(&height)->default_value(0),
-			 "Set the output image height (0 = use default value)")
-			("timeout,t", value<uint64_t>(&timeout)->default_value(5000),
-			 "Time (in ms) for which program runs")
-			("output,o", value<std::string>(&output),
-			 "Set the output file name")
-			("post-process-file", value<std::string>(&post_process_file),
-			 "Set the file name for configuring the post-processing")
-			("rawfull", value<bool>(&rawfull)->default_value(false)->implicit_value(true),
-			 "Force use of full resolution raw frames")
-			("nopreview,n", value<bool>(&nopreview)->default_value(false)->implicit_value(true),
-			 "Do not show a preview window")
-			("preview,p", value<std::string>(&preview)->default_value("0,0,0,0"),
-			 "Set the preview window dimensions, given as x,y,width,height e.g. 0,0,640,480")
-			("fullscreen,f", value<bool>(&fullscreen)->default_value(false)->implicit_value(true),
-			 "Use a fullscreen preview window")
-			("qt-preview", value<bool>(&qt_preview)->default_value(false)->implicit_value(true),
-			 "Use Qt-based preview window (WARNING: causes heavy CPU load, fullscreen not supported)")
-			("hflip", value<bool>(&hflip_)->default_value(false)->implicit_value(true), "Request a horizontal flip transform")
-			("vflip", value<bool>(&vflip_)->default_value(false)->implicit_value(true), "Request a vertical flip transform")
-			("rotation", value<int>(&rotation_)->default_value(0), "Request an image rotation, 0 or 180")
-			("roi", value<std::string>(&roi)->default_value("0,0,0,0"), "Set region of interest (digital zoom) e.g. 0.25,0.25,0.5,0.5")
-			("shutter", value<float>(&shutter)->default_value(0),
-			 "Set a fixed shutter speed in microseconds")
-			("analoggain", value<float>(&gain)->default_value(0),
-			 "Set a fixed gain value (synonym for 'gain' option)")
-			("gain", value<float>(&gain),
-			 "Set a fixed gain value")
-			("metering", value<std::string>(&metering)->default_value("centre"),
-			 "Set the metering mode (centre, spot, average, custom)")
-			("exposure", value<std::string>(&exposure)->default_value("normal"),
-			 "Set the exposure mode (normal, sport)")
-			("ev", value<float>(&ev)->default_value(0),
-			 "Set the EV exposure compensation, where 0 = no change")
-			("awb", value<std::string>(&awb)->default_value("auto"),
-			 "Set the AWB mode (auto, incandescent, tungsten, fluorescent, indoor, daylight, cloudy, custom)")
-			("awbgains", value<std::string>(&awbgains)->default_value("0,0"),
-			 "Set explict red and blue gains (disable the automatic AWB algorithm)")
-			("flush", value<bool>(&flush)->default_value(false)->implicit_value(true),
-			 "Flush output data as soon as possible")
-			("wrap", value<unsigned int>(&wrap)->default_value(0),
-			 "When writing multiple output files, reset the counter when it reaches this number")
-			("brightness", value<float>(&brightness)->default_value(0),
-			 "Adjust the brightness of the output images, in the range -1.0 to 1.0")
-			("contrast", value<float>(&contrast)->default_value(1.0),
-			 "Adjust the contrast of the output image, where 1.0 = normal contrast")
-			("saturation", value<float>(&saturation)->default_value(1.0),
-			 "Adjust the colour saturation of the output, where 1.0 = normal and 0.0 = greyscale")
-			("sharpness", value<float>(&sharpness)->default_value(1.0),
-			 "Adjust the sharpness of the output image, where 1.0 = normal sharpening")
-			("framerate", value<float>(&framerate_)->default_value(-1.0),
-			 "Set the fixed framerate for preview and video modes")
-			("denoise", value<std::string>(&denoise)->default_value("auto"),
-			 "Sets the Denoise operating mode: auto, off, cdn_off, cdn_fast, cdn_hq")
-			("viewfinder-width", value<unsigned int>(&viewfinder_width)->default_value(0),
-			 "Width of viewfinder frames from the camera (distinct from the preview window size")
-			("viewfinder-height", value<unsigned int>(&viewfinder_height)->default_value(0),
-			 "Height of viewfinder frames from the camera (distinct from the preview window size)")
-			("tuning-file", value<std::string>(&tuning_file)->default_value("-"),
-			 "Name of camera tuning file to use, omit this option for libcamera default behaviour")
-			("lores-width", value<unsigned int>(&lores_width)->default_value(0),
-			 "Width of low resolution frames (use 0 to omit low resolution stream")
-			("lores-height", value<unsigned int>(&lores_height)->default_value(0),
-			 "Height of low resolution frames (use 0 to omit low resolution stream")
-			("mode", value<std::string>(&mode_string),
-			 "Camera mode as W:H:bit-depth:packing, where packing is P (packed) or U (unpacked)")
-			("viewfinder-mode", value<std::string>(&viewfinder_mode_string),
-			 "Camera mode for preview as W:H:bit-depth:packing, where packing is P (packed) or U (unpacked)")
-			("buffer-count", value<unsigned int>(&buffer_count)->default_value(0), "Number of in-flight requests (and buffers) configured for video, raw, and still.")
-			("viewfinder-buffer-count", value<unsigned int>(&viewfinder_buffer_count)->default_value(0), "Number of in-flight requests (and buffers) configured for preview window.")
-			("autofocus-mode", value<std::string>(&afMode)->default_value("default"),
-			 "Control to set the mode of the AF (autofocus) algorithm.(manual, auto, continuous)")
-			("autofocus-range", value<std::string>(&afRange)->default_value("normal"),
-			 "Set the range of focus distances that is scanned.(normal, macro, full)")
-			("autofocus-speed", value<std::string>(&afSpeed)->default_value("normal"),
-			 "Control that determines whether the AF algorithm is to move the lens as quickly as possible or more steadily.(normal, fast)")
-			("autofocus-window", value<std::string>(&afWindow)->default_value("0,0,0,0"),
-			"Sets AfMetering to  AfMeteringWindows an set region used, e.g. 0.25,0.25,0.5,0.5")
-			("lens-position", value<std::string>(&lens_position_)->default_value(""),
-			 "Set the lens to a particular focus position, expressed as a reciprocal distance (0 moves the lens to infinity), or \"default\" for the hyperfocal distance")
-			("hdr", value<bool>(&hdr)->default_value(false)->implicit_value(true),
-			 "Enable (1) or disable (0) High Dynamic Range, where supported")
-			("metadata", value<std::string>(&metadata),
-			 "Save captured image metadata to a file or \"-\" for stdout")
-			("metadata-format", value<std::string>(&metadata_format)->default_value("json"),
-			 "Format to save the metadata in, either txt or json (requires --metadata)")
-			;
-		// clang-format on
 	}
 
-	virtual ~Options() {}
+	void set(const std::string &s)
+	{
+		// clang-format off
+		static const std::map<std::string, std::chrono::nanoseconds> match
+		{
+			{ "min", std::chrono::minutes(1) },
+			{ "sec", std::chrono::seconds(1) },
+			{ "s", std::chrono::seconds(1) },
+			{ "ms", std::chrono::milliseconds(1) },
+			{ "us", std::chrono::microseconds(1) },
+			{ "ns", std::chrono::nanoseconds(1) },
+		};
+		// clang-format on
+
+		try
+		{
+			std::size_t end_pos;
+			float f = std::stof(s, &end_pos);
+			value = std::chrono::duration_cast<std::chrono::nanoseconds>(f * DEFAULT { 1 });
+
+			for (const auto &m : match)
+			{
+				auto found = s.find(m.first, end_pos);
+				if (found != end_pos || found + m.first.length() != s.length())
+					continue;
+				value = std::chrono::duration_cast<std::chrono::nanoseconds>(f * m.second);
+				break;
+			}
+		}
+		catch (std::exception const &e)
+		{
+			throw std::runtime_error("Invalid time string provided");
+		}
+	}
+
+	template <typename C = DEFAULT>
+	int64_t get() const
+	{
+		return std::chrono::duration_cast<C>(value).count();
+	}
+
+	explicit constexpr operator bool() const
+	{
+		return !!value.count();
+	}
+
+	std::chrono::nanoseconds value;
+};
+
+struct Bitrate
+{
+public:
+	Bitrate() : bps_(0)
+	{
+	}
+
+	void set(const std::string &s)
+	{
+		// clang-format off
+		static const std::map<std::string, uint64_t> match
+		{
+			{ "bps", 1 },
+			{ "b", 1 },
+			{ "kbps", 1000 },
+			{ "k", 1000 },
+			{ "K", 1000 },
+			{ "mbps", 1000 * 1000 },
+			{ "m", 1000 * 1000 },
+			{ "M", 1000 },
+		};
+		// clang-format on
+
+		try
+		{
+			std::size_t end_pos;
+			float f = std::stof(s, &end_pos);
+			bps_ = f;
+
+			for (const auto &m : match)
+			{
+				auto found = s.find(m.first, end_pos);
+				if (found != end_pos || found + m.first.length() != s.length())
+					continue;
+				bps_ = f * m.second;
+				break;
+			}
+		}
+		catch (std::exception const &e)
+		{
+			throw std::runtime_error("Invalid bitrate string provided");
+		}
+	}
+
+	uint64_t bps() const
+	{
+		return bps_;
+	}
+
+	uint64_t kbps() const
+	{
+		return bps_ / 1000;
+	}
+
+	uint64_t mbps() const
+	{
+		return bps_ / (1000 * 1000);
+	}
+
+	explicit constexpr operator bool() const
+	{
+		return !!bps_;
+	}
+
+private:
+	uint64_t bps_;
+};
+
+enum class Platform
+{
+	MISSING,
+	UNKNOWN,
+	LEGACY,
+	VC4,
+	PISP,
+};
+
+struct OptsInternal
+{
+	OptsInternal() : set_default_lens_position(false), af_on_capture(false)
+	{
+	}
+
+	bool Parse(boost::program_options::variables_map &vm, RPiCamApp *app);
+	void Print() const;
+
+	bool ParseVideo();
+	void PrintVideo() const;
+
+	bool ParseStill();
+	void PrintStill() const;
 
 	bool help;
 	bool version;
 	bool list_cameras;
 	unsigned int verbose;
-	uint64_t timeout; // in ms
+	TimeVal<std::chrono::milliseconds> timeout;
 	std::string config_file;
 	std::string output;
 	std::string post_process_file;
+	std::string post_process_libs;
 	unsigned int width;
 	unsigned int height;
-	bool rawfull;
 	bool nopreview;
 	std::string preview;
 	bool fullscreen;
@@ -176,7 +214,7 @@ struct Options
 	libcamera::Transform transform;
 	std::string roi;
 	float roi_x, roi_y, roi_width, roi_height;
-	float shutter;
+	TimeVal<std::chrono::microseconds> shutter;
 	float gain;
 	std::string metering;
 	int metering_index;
@@ -188,6 +226,8 @@ struct Options
 	std::string awbgains;
 	float awb_gain_r;
 	float awb_gain_b;
+	std::string ccm;
+	float ccm_values[9];
 	bool flush;
 	unsigned int wrap;
 	float brightness;
@@ -203,6 +243,7 @@ struct Options
 	bool qt_preview;
 	unsigned int lores_width;
 	unsigned int lores_height;
+	bool lores_par;
 	unsigned int camera;
 	std::string mode_string;
 	Mode mode;
@@ -223,18 +264,115 @@ struct Options
 	bool af_on_capture;
 	std::string metadata;
 	std::string metadata_format;
-	bool hdr;
-
-	virtual bool Parse(int argc, char *argv[]);
-	virtual void Print() const;
-
-protected:
-	boost::program_options::options_description options_;
-
-private:
+	std::string hdr;
+	TimeVal<std::chrono::microseconds> flicker_period;
+	bool no_raw;
 	bool hflip_;
 	bool vflip_;
 	int rotation_;
 	float framerate_;
 	std::string lens_position_;
+	std::string timeout_;
+	std::string shutter_;
+	std::string flicker_period_;
+
+	Bitrate bitrate;
+	std::string profile;
+	std::string level;
+	unsigned int intra;
+	bool inline_headers;
+	std::string codec;
+	std::string libav_video_codec;
+	std::string libav_video_codec_opts;
+	std::string libav_format;
+	bool libav_audio;
+	std::string audio_codec;
+	std::string audio_device;
+	std::string audio_source;
+	uint32_t audio_channels;
+	Bitrate audio_bitrate;
+	uint32_t audio_samplerate;
+	TimeVal<std::chrono::microseconds> av_sync;
+	std::string save_pts;
+	int quality;
+	bool listen;
+	bool keypress;
+	bool signal;
+	std::string initial;
+	bool pause;
+	bool split;
+	uint32_t segment;
+	size_t circular;
+	uint32_t frames;
+	bool low_latency;
+#ifndef DISABLE_RPI_FEATURES
+	uint32_t sync;
+#endif
+	std::string bitrate_;
+	std::string av_sync_;
+	std::string audio_bitrate_;
+#ifndef DISABLE_RPI_FEATURES
+	std::string sync_;
+#endif
+
+	//int quality;
+	std::vector<std::string> exif;
+	TimeVal<std::chrono::milliseconds> timelapse;
+	uint32_t framestart;
+	bool datetime;
+	bool timestamp;
+	unsigned int restart;
+	//bool keypress;
+	//bool signal;
+	std::string thumb;
+	unsigned int thumb_width, thumb_height, thumb_quality;
+	std::string encoding;
+	bool raw;
+	std::string latest;
+	bool immediate;
+	bool zsl;
+	std::string timelapse_;
+
+	std::string preview_libs;
+	std::string encoder_libs;
+};
+
+struct Options
+{
+	Options();
+	virtual ~Options()
+	{
+	}
+
+	virtual bool Parse(int argc, char *argv[]);
+	virtual void Print() const
+	{
+		v_->Print();
+	}
+
+	const OptsInternal &Get() const
+	{
+		return *v_.get();
+	}
+	OptsInternal &Set() const
+	{
+		return *v_.get();
+	}
+
+	void SetApp(RPiCamApp *app)
+	{
+		app_ = app;
+	}
+	Platform GetPlatform() const
+	{
+		return platform_;
+	};
+
+protected:
+	std::unique_ptr<boost::program_options::options_description> options_;
+	std::unique_ptr<OptsInternal> v_ = std::make_unique<OptsInternal>();
+
+private:
+	RPiCamApp *app_;
+	Platform platform_ = Platform::UNKNOWN;
 };

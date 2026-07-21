@@ -2,7 +2,7 @@
 
 RaspiNDI is a simple NDI send library for Raspberry Pi. It was initially
 developed to allow a streaming setup for a church during the COVID-19 outbreak
-in 2020. 
+in 2020.
 
 It uses the NDI library, allowing for auto-discovery of streams on the local
 network.
@@ -17,7 +17,7 @@ running it on a Rapsberry Pi 4. **The Pi Zero W does not have enough memory to r
 this software**
 
 ## Latency Notes
-Raspberry Pi 3b+ = ~600ms   
+Raspberry Pi 3b+ = ~600ms
 Raspberry Pi 4b (4GB Model Tested) = ~200ms
 
 ## Getting started - pre-compiled
@@ -92,15 +92,21 @@ Run it. (It does not require root to run.)
 /opt/raspindi/raspindi.sh
 ```
 
-Open an NDI receiver somewhere on the same network. It should detect the 
+Open an NDI receiver somewhere on the same network. It should detect the
 Raspberry Pi camera after a few seconds.
 
-[OBS Studio](https://obsproject.com/) with the 
-[OBS-NDI plugin](https://github.com/Palakis/obs-ndi/releases/) 
+[OBS Studio](https://obsproject.com/) with the
+[OBS-NDI plugin](https://github.com/Palakis/obs-ndi/releases/)
 works well.
 
 
 # Changelog
+
+## v4.0.0
+Updated to use new rpicam-app library
+Added trixie and bookworm to build matrix
+Removed buster from build matrix
+Updated NDI to v6.3
 
 ## v3.0.4
 Updated libcamera code to fit with libcamera changes.
@@ -122,7 +128,7 @@ Upgraded NDI library to v5.0.0
 Added config parameters for various camera settings (AWB, exposure etc.)
 
 ## v2.0.0
-Completely new method of acquiring the images - now calling `mmal` directly.  
+Completely new method of acquiring the images - now calling `mmal` directly.
 This, as well as using YUV colour, drastically improves the speed of the system,
 and the smoothness of the outputted video.
 

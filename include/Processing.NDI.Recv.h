@@ -2,13 +2,13 @@
 
 // NOTE : The following MIT license applies to this file ONLY and not to the SDK as a whole. Please review
 // the SDK documentation for the description of the full license terms, which are also provided in the file
-// "NDI License Agreement.pdf" within the SDK or online at http://new.tk/ndisdk_license/. Your use of any
+// "NDI License Agreement.pdf" within the SDK or online at http://ndi.link/ndisdk_license. Your use of any
 // part of this SDK is acknowledgment that you agree to the SDK license terms. The full NDI SDK may be
-// downloaded at http://ndi.tv/
+// downloaded at http://ndi.video/
 //
 //***********************************************************************************************************
 //
-// Copyright (C)2014-2022, NewTek, inc.
+// Copyright (C) 2023-2026 Vizrt NDI AB. All rights reserved.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated documentation files(the "Software"), to deal in the Software without restriction, including
@@ -51,7 +51,7 @@ typedef enum NDIlib_recv_color_format_e {
 	// When there is an alpha channel, this mode delivers BGRA.
 	NDIlib_recv_color_format_UYVY_BGRA = 1,
 
-	// When there is no alpha channel, this mode delivers BGRX.
+	// When there is no alpha channel, this mode delivers RGBX.
 	// When there is an alpha channel, this mode delivers RGBA.
 	NDIlib_recv_color_format_RGBX_RGBA = 2,
 
@@ -252,7 +252,10 @@ bool NDIlib_recv_set_tally(NDIlib_recv_instance_t p_instance, const NDIlib_tally
 // structure will give you the total frame counts received, the dropped structure will tell you how many
 // frames have been dropped. Either of these could be NULL.
 PROCESSINGNDILIB_API
-void NDIlib_recv_get_performance(NDIlib_recv_instance_t p_instance, NDIlib_recv_performance_t* p_total, NDIlib_recv_performance_t* p_dropped);
+void NDIlib_recv_get_performance(
+	NDIlib_recv_instance_t p_instance,
+	NDIlib_recv_performance_t* p_total, NDIlib_recv_performance_t* p_dropped
+);
 
 // This will allow you to determine the current queue depth for all of the frame sources at any time.
 PROCESSINGNDILIB_API
@@ -282,3 +285,13 @@ int NDIlib_recv_get_no_connections(NDIlib_recv_instance_t p_instance);
 // when the NDILib_recv_capture* call would return NDIlib_frame_type_status_change.
 PROCESSINGNDILIB_API
 const char* NDIlib_recv_get_web_control(NDIlib_recv_instance_t p_instance);
+
+// Retrieve the name of the current NDI source that the NDI receiver is connected to. This will return false
+// if there has been no change in the source information since the last call. If p_source_name is NULL, then
+// the name of the current NDI source will not be returned. If p_source_name is not NULL, then the name of
+// the current source will be returned, however, the returned value can be NULL if the NDI receiver is
+// currently not connected to a source. If the returned pointer is not NULL, then you should call
+// NDIlib_recv_free_string to free the string that is returned by this function. A timeout value can be given
+// to wait until a change occurs. If waiting is not desired, then use a timeout of 0.
+PROCESSINGNDILIB_API
+bool NDIlib_recv_get_source_name(NDIlib_recv_instance_t p_instance, const char** p_source_name, uint32_t timeout_in_ms NDILIB_CPP_DEFAULT_VALUE(0));

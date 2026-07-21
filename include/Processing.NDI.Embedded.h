@@ -6,6 +6,7 @@
 // 
 // This file is part of the Embedded SDK and may not be distributed.
 
+#include <cstddef>
 #include "Processing.NDI.Lib.h"
 
 #ifndef PROCESSINGNDILIB_EMBEDDED_API

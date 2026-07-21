@@ -7,27 +7,28 @@
 
 #pragma once
 
-#include <output/output.hpp>
 #include <Processing.NDI.Embedded.h>
 
-class NdiOutput : public Output
-{
-public:
-	NdiOutput(VideoOptions const *options, std::string neopixelPath);
-	~NdiOutput();
+#include <output/output.hpp>
 
-    bool isProgram();
-    bool isPreview();
+class NdiOutput : public Output {
+ public:
+  NdiOutput(VideoOptions const* options, std::string neopixelPath);
+  ~NdiOutput();
 
-protected:
-	void outputBuffer(void *mem, size_t size, int64_t timestamp_us, uint32_t flags) override;
+  bool isProgram();
+  bool isPreview();
 
-private:
-    NDIlib_tally_t NDI_tally;
-    NDIlib_send_create_t NDI_send_create_desc;
-    NDIlib_send_instance_t pNDI_send;
-    NDIlib_video_frame_v2_t NDI_video_frame;
-    bool preview;
-    bool program;
-    std::string neopixelpath;
+ protected:
+  void outputBuffer(void* mem, size_t size, int64_t timestamp_us,
+                    uint32_t flags) override;
+
+ private:
+  NDIlib_tally_t NDI_tally;
+  NDIlib_send_create_t NDI_send_create_desc;
+  NDIlib_send_instance_t pNDI_send;
+  NDIlib_video_frame_v2_t NDI_video_frame;
+  bool preview;
+  bool program;
+  std::string neopixelpath;
 };

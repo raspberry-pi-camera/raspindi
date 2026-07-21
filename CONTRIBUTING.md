@@ -17,4 +17,3 @@ First of all, thank you for reading this. Open source projects work best when pe
 * Open a new GitHub pull request with the patch.
 
 * Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
-

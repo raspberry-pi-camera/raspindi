@@ -13,13 +13,13 @@ target_link_directories(raspindi PRIVATE
         ../lib/
 )
 target_link_libraries(raspindi PRIVATE
-#     ndi 
-#     dl 
+#     ndi
+#     dl
     config++
 #    encoders
 #    outputs
     ndioutput
-    camera_app
+    rpicam_app
     boost_program_options
 )
 

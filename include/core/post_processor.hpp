@@ -14,6 +14,7 @@
 #include <queue>
 
 #include "core/completed_request.hpp"
+#include "core/dl_lib.hpp"
 #include "core/logging.hpp"
 
 namespace libcamera
@@ -21,7 +22,7 @@ namespace libcamera
 struct StreamConfiguration;
 }
 
-class LibcameraApp;
+class RPiCamApp;
 
 using namespace std::chrono_literals;
 class PostProcessingStage;
@@ -32,9 +33,11 @@ typedef std::unique_ptr<PostProcessingStage> StagePtr;
 class PostProcessor
 {
 public:
-	PostProcessor(LibcameraApp *app);
+	PostProcessor(RPiCamApp *app);
 
 	~PostProcessor();
+
+	void LoadModules(const std::string &lib_dir);
 
 	void Read(std::string const &filename);
 
@@ -55,8 +58,9 @@ public:
 private:
 	PostProcessingStage *createPostProcessingStage(char const *name);
 
-	LibcameraApp *app_;
+	RPiCamApp *app_;
 	std::vector<StagePtr> stages_;
+	std::vector<DlLib> dynamic_stages_;
 	void outputThread();
 
 	std::queue<CompletedRequestPtr> requests_;
